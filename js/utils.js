@@ -9,6 +9,9 @@
 window.csrfToken     = '';
 window.appliedVoucher = null;
 
+// Lưu lại fetch gốc trước khi override
+window._originalFetch = window.fetch;
+
 /* =========================================
    CSRF INIT & FETCH INTERCEPTOR
    ========================================= */
@@ -23,9 +26,6 @@ window.appliedVoucher = null;
         console.error('CSRF Init fail', e);
     }
 })();
-
-// Lưu lại fetch gốc trước khi override
-window._originalFetch = window.fetch;
 
 // Global Fetch Interceptor: tự động đính kèm CSRF Token vào mọi mutating request
 window.fetch = async function(url, options = {}) {
