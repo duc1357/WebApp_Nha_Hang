@@ -52,9 +52,13 @@ class CsrfService {
         }
 
         if (!self::verifyToken($token)) {
+            $allHeaders = function_exists('getallheaders') ? getallheaders() : [];
             error_log("CSRF Fail | IP: " . ($_SERVER['REMOTE_ADDR'] ?? '-')
                 . " | Session token: " . ($_SESSION['csrf_token'] ?? 'NULL')
-                . " | Received: " . $token);
+                . " | Received: " . $token
+                . " | SERVER: " . json_encode(array_keys($_SERVER))
+                . " | HEADERS: " . json_encode($allHeaders));
+            
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'CSRF Validation Failed']);
             exit;

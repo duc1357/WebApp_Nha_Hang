@@ -11,7 +11,7 @@
 
     <title>Nhà Hàng Cơm Quê Dượng Bầu</title>
 
-    <link rel="stylesheet" href="style.css?v=13">
+    <link rel="stylesheet" href="style.css?v=15">
 
     <!-- CSS đã được chuyển sang style.css -->
 </head>
@@ -81,50 +81,46 @@
             <div id="cart-items" class="cart-body"></div>
 
             <div class="cart-footer">
-                <div class="voucher-box" style="display:flex; gap:5px; margin-bottom:10px;">
+                <div class="voucher-box premium-form-group">
                     <label for="voucher-input" style="display:none;">Mã giảm giá</label>
-                    <input type="text" id="voucher-input" placeholder="Mã giảm giá"
-                        style="flex:1; padding:8px; border:1px solid #ddd; border-radius:4px;">
-                    <button onclick="checkVoucher()"
-                        style="padding:8px 12px; background:#2c3e50; color:white; border:none; border-radius:4px; cursor:pointer;">Áp
-                        dụng</button>
+                    <input type="text" id="voucher-input" placeholder="Nhập mã giảm giá...">
+                    <button onclick="checkVoucher()" class="btn-apply-voucher">Áp dụng</button>
                 </div>
-                <div id="voucher-msg" style="font-size:13px; margin-bottom:5px;"></div>
+                <div id="voucher-msg" class="voucher-msg"></div>
 
-                <div class="order-context"
-                    style="border-top:1px solid #eee; border-bottom:1px solid #eee; padding:10px 0; margin-bottom:10px;">
-                    <div style="display:flex; gap:15px; margin-bottom:10px;">
-                        <label style="font-weight:600;"><input type="radio" name="order_type" value="delivery" checked
-                                onchange="toggleOrderType()"> Giao hàng</label>
-                        <label style="font-weight:600;"><input type="radio" name="order_type" value="dine_in"
-                                onchange="toggleOrderType()"> Tại bàn</label>
+                <div class="order-context premium-context">
+                    <div class="radio-group">
+                        <label class="premium-radio"><input type="radio" name="order_type" value="delivery" checked onchange="toggleOrderType()"> <span>Giao hàng</span></label>
+                        <label class="premium-radio"><input type="radio" name="order_type" value="dine_in" onchange="toggleOrderType()"> <span>Tại bàn</span></label>
                     </div>
 
-                    <div id="delivery_info">
+                    <div id="delivery_info" class="premium-form-group">
                         <label for="delivery_address" style="display:none;">Địa chỉ giao hàng</label>
-                        <input type="text" id="delivery_address" placeholder="Địa chỉ giao hàng..."
-                            style="width:100%; padding:8px; margin-bottom:5px; border:1px solid #cbd5e0; border-radius:4px;">
+                        <input type="text" id="delivery_address" placeholder="Địa chỉ giao hàng...">
                     </div>
 
-                    <div id="dine_in_info" style="display:none;">
+                    <div id="dine_in_info" class="premium-form-group" style="display:none;">
                         <label for="table_number_input" style="display:none;">Tên bàn</label>
-                        <input type="text" id="table_number_input" placeholder="Nhập tên bàn"
-                            style="width:100%; padding:8px; margin-bottom:5px; border:1px solid #cbd5e0; border-radius:4px;">
+                        <input type="text" id="table_number_input" placeholder="Nhập tên/số bàn...">
                     </div>
-                    <label for="order_note" style="display:none;">Ghi chú thêm</label>
-                    <textarea id="order_note" placeholder="Ghi chú thêm (tuỳ chọn)..."
-                        style="width:100%; padding:8px; border:1px solid #cbd5e0; border-radius:4px; height:50px; font-family:inherit;"></textarea>
+                    
+                    <div class="premium-form-group" style="margin-top: 10px;">
+                        <label for="order_note" style="display:none;">Ghi chú thêm</label>
+                        <textarea id="order_note" placeholder="Ghi chú thêm (tuỳ chọn)..."></textarea>
+                    </div>
                 </div>
 
-                <div id="cart-total">Tổng cộng: 0 VNĐ</div>
+                <div id="cart-total" class="premium-total">Tổng cộng: 0 VNĐ</div>
 
-                <div class="payment-options">
-                    <h4>Thanh toán</h4>
-                    <label><input type="radio" name="payment_method" value="cash" checked> Tiền mặt</label>
-                    <label><input type="radio" name="payment_method" value="bank_transfer"> MB QR</label>
+                <div class="payment-options premium-payment">
+                    <h4>Phương thức thanh toán</h4>
+                    <div class="radio-group">
+                        <label class="premium-radio"><input type="radio" name="payment_method" value="cash" checked> <span>Tiền mặt</span></label>
+                        <label class="premium-radio"><input type="radio" name="payment_method" value="bank_transfer"> <span>MB QR</span></label>
+                    </div>
                 </div>
 
-                <button id="checkout-btn" onclick="checkout()">Thanh toán</button>
+                <button id="checkout-btn" class="btn-checkout-premium" onclick="checkout()">Thanh toán ngay</button>
             </div>
         </div>
 
@@ -187,7 +183,8 @@
         </div>
     </div>
 
-    <!-- JS Modules (thứ tự nạp quan trọng: utils → cart → menu → payment → reviews) -->
+    <!-- JS Modules (thứ tự nạp quan trọng: main → utils → cart → menu → payment → reviews) -->
+    <script src="js/main.js?v=5.0"></script>
     <script src="js/utils.js?v=3.0"></script>
     <script src="js/cart.js?v=3.0"></script>
     <script src="js/menu.js?v=3.0"></script>

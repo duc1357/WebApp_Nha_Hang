@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hồ Sơ Của Tôi - Nhà Hàng Cơm Quê Dượng Bầu</title>
-    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="style.css?v=15">
     <style>
         /* =========================================
            PREMIUM PROFILE STYLES
@@ -13,17 +13,65 @@
         body { background-color: var(--bg-body); }
         
         .profile-hero {
-            background: linear-gradient(135deg, var(--accent) 0%, #1a252f 100%);
-            padding: 40px 20px 100px;
-            text-align: center;
-            color: white;
+            background: linear-gradient(135deg, rgba(44, 62, 80, 0.6) 0%, rgba(17, 24, 32, 0.8) 100%), url('photo/luxury_bg.png');
+            background-size: cover;
+            background-position: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 380px;
+            z-index: 0;
+        }
+
+        .profile-nav {
             position: relative;
-            margin-bottom: 40px;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 99px;
+            width: 90%;
+            max-width: 1000px;
+            margin: 30px auto 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .profile-nav a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.05rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .profile-nav a:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .profile-nav .nav-auth {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .profile-nav .user-greeting {
+            color: white !important;
+            font-weight: 600;
         }
 
         .profile-container {
             max-width: 1100px;
-            margin: -80px auto 60px;
+            margin: 0 auto 60px;
             display: flex;
             gap: 30px;
             padding: 0 20px;
@@ -216,18 +264,16 @@
 </head>
 
 <body>
-    <!-- NAVIGATION (Đồng bộ với trang chủ) -->
-    <nav class="main-nav" style="margin-top: 20px; width: 90%; max-width: 1200px; margin: 20px auto; border-radius: 99px;">
+    <!-- HERO BACKGROUND -->
+    <div class="profile-hero"></div>
+
+    <!-- PREMIUM NAVIGATION -->
+    <nav class="profile-nav">
         <a href="index.html">Trang Chủ</a>
         <a href="index.html#menu">Thực Đơn</a>
         <a href="booking.html">Đặt Bàn</a>
         <div id="auth-actions" class="nav-auth"></div>
     </nav>
-
-    <!-- HERO SECTION -->
-    <div class="profile-hero">
-        <!-- Chừa không gian trống, tạo nền gradient sang trọng -->
-    </div>
 
     <!-- MAIN PROFILE CONTAINER -->
     <div class="profile-container">
@@ -335,7 +381,6 @@
                 </div>
                 <div id="booking-history-list">Đang tải...</div>
             </div>
-            
         </div>
     </div>
 
@@ -385,7 +430,8 @@
         </div>
     </div>
 
-    <!-- JS Modules (thứ tự nạp quan trọng: utils → payment → profile → reviews) -->
+    <!-- JS Modules (thứ tự nạp quan trọng: main → utils → payment → profile → reviews) -->
+    <script src="js/main.js?v=5.0"></script>
     <script src="js/utils.js?v=3.0"></script>
     <script src="js/payment.js?v=3.0"></script>
     <script src="js/profile.js?v=3.0"></script>
@@ -420,12 +466,8 @@
         });
 
         function logoutUser() {
-            if (confirm('Bạn có chắc muốn đăng xuất?')) {
-                fetch('api/auth/logout.php', { method: 'POST' })
-                    .finally(() => {
-                        localStorage.removeItem('restaurant_user');
-                        window.location.href = 'index.html';
-                    });
+            if (typeof window.showLogoutModal === 'function') {
+                window.showLogoutModal();
             }
         }
     </script>

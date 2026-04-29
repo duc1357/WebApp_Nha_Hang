@@ -69,33 +69,80 @@ function renderUserHeader() {
 
     if (user) {
         const firstLetter = user.name ? user.name.charAt(0).toUpperCase() : 'U';
-        let avatarHtml = '';
-        
-        if (user.avatar && user.avatar.trim() !== '') {
-             // Basic cache buster if needed, but raw path is usually fine if unique
-             avatarHtml = `<img src="${user.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #fff;">`;
-        } else {
-             avatarHtml = `<div class="user-avatar-btn logged-in" style="width:32px; height:32px;">${firstLetter}</div>`;
-        }
+        const avatarInner = (user.avatar && user.avatar.trim() !== '')
+            ? `<img src="${user.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+            : firstLetter;
 
         box.innerHTML = '';
-        const navAuth = document.createElement('div');
-        navAuth.className = 'nav-auth';
-        navAuth.style.cssText = 'display: flex; align-items: center; gap: 10px;';
 
-        const greeting = document.createElement('span');
-        greeting.style.cssText = 'color: white; font-weight: 600; font-size: 15px; line-height: 1;';
-        greeting.textContent = `Xin chào, ${user.name}`;
+        // Outer wrapper with relative position for dropdown positioning
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'position: relative;';
 
-        const avatarDiv = document.createElement('div');
-        avatarDiv.onclick = () => location.href = 'profile.html';
-        avatarDiv.title = 'Vào trang cá nhân';
-        avatarDiv.style.cursor = 'pointer';
-        avatarDiv.innerHTML = avatarHtml; // avatarHtml is built from trusted sources or simple strings above
+        // Trigger button — clicking opens dropdown
+        const trigger = document.createElement('div');
+        trigger.id = 'user-header-trigger';
+        trigger.innerHTML = `
+            <div class="uht-greeting">
+                <span class="uht-label">Xin chào,</span>
+                <span class="uht-name">${user.name}</span>
+            </div>
+            <div class="uht-avatar">${avatarInner}</div>
+        `;
 
-        navAuth.appendChild(greeting);
-        navAuth.appendChild(avatarDiv);
-        box.appendChild(navAuth);
+        // Dropdown card — sibling of trigger, not child
+        const dropdown = document.createElement('div');
+        dropdown.id = 'user-dropdown-menu';
+        dropdown.className = 'premium-dropdown';
+        dropdown.innerHTML = `
+            <div class="pd-header">
+                <div class="pd-avatar">${avatarInner}</div>
+                <div class="pd-info">
+                    <span class="pd-greeting">Xin chào,</span>
+                    <span class="pd-name">${user.name}</span>
+                </div>
+            </div>
+            <div class="pd-divider"></div>
+            <a href="profile.html" class="pd-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Hồ sơ cá nhân</span>
+            </a>
+            <a href="#" class="pd-item pd-logout" id="dropdown-logout-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Đăng xuất</span>
+            </a>
+        `;
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(dropdown);
+        box.appendChild(wrapper);
+
+        // Toggle dropdown when clicking trigger
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdown.classList.contains('open');
+            // Close any other open dropdowns first
+            dropdown.classList.toggle('open', !isOpen);
+        });
+
+        // Clicking inside dropdown: stop propagation so document listener doesn't close it
+        dropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        // Logout button
+        dropdown.querySelector('#dropdown-logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropdown.classList.remove('open');
+            if (typeof window.showLogoutModal === 'function') window.showLogoutModal();
+        });
+
+        // Close on outside click
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('open');
+        });
+
     } else {
         box.innerHTML = `
             <div class="nav-auth">
@@ -195,16 +242,20 @@ function addToCart(arg1, arg2, arg3, arg4) {
                 imgClone.style.zIndex = '9999';
                 imgClone.style.borderRadius = '50%';
                 imgClone.style.opacity = '0.8';
-                imgClone.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)'; // Smooth easing
+                imgClone.style.transformOrigin = 'top left';
+                // Tối ưu FPS: CHỈ animate transform và opacity để GPU xử lý, KHÔNG animate top/left/width/height vì sẽ gây Reflow toàn trang liên tục
+                imgClone.style.transition = 'transform 0.8s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.8s ease'; 
 
                 document.body.appendChild(imgClone);
 
                 // Trigger animation in next frame
                 requestAnimationFrame(() => {
-                    imgClone.style.top = (cartRect.top + 10) + 'px'; // Center slightly
-                    imgClone.style.left = (cartRect.left + 10) + 'px';
-                    imgClone.style.width = '30px';
-                    imgClone.style.height = '30px';
+                    const targetX = (cartRect.left + 10) - rect.left;
+                    const targetY = (cartRect.top + 10) - rect.top;
+                    const scaleX = 30 / rect.width;
+                    const scaleY = 30 / rect.height;
+                    
+                    imgClone.style.transform = `translate(${targetX}px, ${targetY}px) scale(${scaleX}, ${scaleY})`;
                     imgClone.style.opacity = '0';
                 });
 
@@ -1554,4 +1605,59 @@ window.updateBookingCartUI = function() {
         }
     }
 };
+
+/* =========================================
+   GLOBAL LOGOUT MODAL
+   ========================================= */
+window.showLogoutModal = function() {
+    // Remove existing if present
+    let modal = document.getElementById('logout-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'logout-modal';
+        modal.innerHTML = `
+            <div class="logout-modal-card">
+                <div class="logout-icon-wrap">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </div>
+                <h3>Xác nhận Đăng xuất</h3>
+                <p>Bạn có chắc chắn muốn rời khỏi hệ thống không?</p>
+                <div class="logout-actions">
+                    <button class="btn-cancel-logout" id="btn-cancel-logout">Hủy bỏ</button>
+                    <button class="btn-confirm-logout" id="btn-execute-logout">Đăng xuất</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('btn-cancel-logout').addEventListener('click', window.hideLogoutModal);
+        document.getElementById('btn-execute-logout').addEventListener('click', window.executeLogout);
+        // Click backdrop to close
+        modal.addEventListener('click', (e) => { if (e.target === modal) window.hideLogoutModal(); });
+    }
+
+    // Trigger transition on next frame
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => modal.classList.add('modal-visible'));
+    });
+}
+
+window.hideLogoutModal = function() {
+    const modal = document.getElementById('logout-modal');
+    if (!modal) return;
+    modal.classList.remove('modal-visible');
+}
+
+window.executeLogout = function() {
+    const btn = document.getElementById('btn-execute-logout');
+    if (btn) {
+        btn.innerHTML = '<span class="spinner" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;"></span>';
+        btn.disabled = true;
+    }
+    fetch('api/auth/logout.php', { method: 'POST' })
+        .finally(() => {
+            localStorage.removeItem('restaurant_user');
+            window.location.href = 'index.html';
+        });
+}
 

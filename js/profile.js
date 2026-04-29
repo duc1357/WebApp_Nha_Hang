@@ -155,21 +155,28 @@ window.changePassword = function() {
    ORDER & BOOKING HISTORY
    ========================================= */
 
+let currentOrderPage = 1;
+let currentBookingPage = 1;
+
 /**
  * Tải lịch sử đơn hàng và đặt bàn
- * @param {number} page  Trang hiện tại (pagination)
+ * @param {number} o_page  Trang đơn hàng (undefined thì lấy trang hiện tại)
+ * @param {number} b_page  Trang đặt bàn (undefined thì lấy trang hiện tại)
  */
-window.loadUserHistory = function(page = 1) {
+window.loadUserHistory = function(o_page, b_page) {
+    if (o_page !== undefined) currentOrderPage = o_page;
+    if (b_page !== undefined) currentBookingPage = b_page;
+
     const user = getCurrentUser();
     if (!user) return;
 
     const orderList   = document.getElementById('order-history-list');
     const bookingList = document.getElementById('booking-history-list');
 
-    if (orderList)               orderList.innerHTML   = '<div class="spinner"></div> Đang tải...';
-    if (bookingList && page === 1) bookingList.innerHTML = '<div class="spinner"></div> Đang tải...';
+    if (orderList)   orderList.innerHTML   = '<div class="spinner"></div> Đang tải đơn hàng...';
+    if (bookingList) bookingList.innerHTML = '<div class="spinner"></div> Đang tải lịch đặt bàn...';
 
-    fetch(`api/user/get_user_history.php?page=${page}`)
+    fetch(`api/user/get_user_history.php?o_page=${currentOrderPage}&b_page=${currentBookingPage}`)
         .then(res => res.json())
         .then(data => {
             // Xử lý session expired
@@ -209,10 +216,17 @@ window.loadUserHistory = function(page = 1) {
                     if (data.pagination?.total_pages > 1) {
                         const { current_page, total_pages } = data.pagination;
                         paginationHtml = `
-                            <div class="pagination-controls">
-                                <button class="page-btn" ${current_page <= 1 ? 'disabled' : ''} onclick="loadUserHistory(${current_page - 1})">« Trước</button>
-                                <span style="line-height:30px;font-weight:500;">Trang ${current_page} / ${total_pages}</span>
-                                <button class="page-btn" ${current_page >= total_pages ? 'disabled' : ''} onclick="loadUserHistory(${current_page + 1})">Sau »</button>
+                            <div class="premium-pagination">
+                                <button class="btn-page" ${current_page <= 1 ? 'disabled' : ''} onclick="loadUserHistory(${current_page - 1}, undefined)">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                </button>
+                                <div class="page-info">
+                                    <span class="current">${current_page}</span>
+                                    <span>/ ${total_pages}</span>
+                                </div>
+                                <button class="btn-page" ${current_page >= total_pages ? 'disabled' : ''} onclick="loadUserHistory(${current_page + 1}, undefined)">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
                             </div>`;
                     }
                     orderList.innerHTML = ordersHtml + paginationHtml;
@@ -221,13 +235,13 @@ window.loadUserHistory = function(page = 1) {
                 }
             }
 
-            // Render lịch sử đặt bàn (chỉ trang 1)
-            if (bookingList && page === 1) {
+            // Render lịch sử đặt bàn
+            if (bookingList) {
                 if (data.bookings?.length > 0) {
                     const bStatusLabel = (s) => s === 'cancelled' ? 'Đã hủy' : (s === 'confirmed' ? 'Đã xác nhận' : 'Chờ xác nhận');
                     const bStatusBadge = (s) => s === 'cancelled' ? 'danger' : (s === 'confirmed' ? 'success' : 'warning');
 
-                    bookingList.innerHTML = data.bookings.map(b => `
+                    const bookingsHtml = data.bookings.map(b => `
                         <div class="history-item" style="border:1px solid #eee;padding:10px;margin-bottom:10px;border-radius:8px;">
                             <div style="display:flex;justify-content:space-between;">
                                 <strong>${b.date} - ${b.time.substring(0, 5)}</strong>
@@ -237,6 +251,25 @@ window.loadUserHistory = function(page = 1) {
                             <p>Khách: ${b.guests} người</p>
                         </div>
                     `).join('');
+                    
+                    let bPaginationHtml = '';
+                    if (data.booking_pagination?.total_pages > 1) {
+                        const { current_page, total_pages } = data.booking_pagination;
+                        bPaginationHtml = `
+                            <div class="premium-pagination">
+                                <button class="btn-page" ${current_page <= 1 ? 'disabled' : ''} onclick="loadUserHistory(undefined, ${current_page - 1})">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                </button>
+                                <div class="page-info">
+                                    <span class="current">${current_page}</span>
+                                    <span>/ ${total_pages}</span>
+                                </div>
+                                <button class="btn-page" ${current_page >= total_pages ? 'disabled' : ''} onclick="loadUserHistory(undefined, ${current_page + 1})">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
+                            </div>`;
+                    }
+                    bookingList.innerHTML = bookingsHtml + bPaginationHtml;
                 } else {
                     bookingList.innerHTML = '<p>Chưa có lịch đặt bàn nào.</p>';
                 }

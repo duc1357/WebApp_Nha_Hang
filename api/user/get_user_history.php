@@ -34,9 +34,10 @@ $stmt->close();
 
 
 // 1. Get Orders using user_id with Pagination
-$orderPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$orderPage = isset($_GET['o_page']) ? (int)$_GET['o_page'] : 1;
+if ($orderPage < 1) $orderPage = 1;
 $limit = 3; // As requested
-$offset = ($orderPage - 1) * $limit;
+$orderOffset = ($orderPage - 1) * $limit;
 
 $orders = [];
 $totalOrders = 0;
@@ -60,7 +61,7 @@ if ($userId) {
             WHERE o.user_id = ? 
             ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
     $stmt = $conn->prepare($oSql);
-    $stmt->bind_param("iii", $userId, $limit, $offset);
+    $stmt->bind_param("iii", $userId, $limit, $orderOffset);
     $stmt->execute();
     $res = $stmt->get_result();
     while ($row = $res->fetch_assoc()) {
@@ -69,9 +70,26 @@ if ($userId) {
     $stmt->close();
 }
 
-// 2. Get Bookings using phone (if bookings table relies on phone)
+// 2. Get Bookings using user_id with Pagination
+$bookingPage = isset($_GET['b_page']) ? (int)$_GET['b_page'] : 1;
+if ($bookingPage < 1) $bookingPage = 1;
+$bookingLimit = 3;
+$bookingOffset = ($bookingPage - 1) * $bookingLimit;
+
 $bookings = [];
+$totalBookings = 0;
+
 if ($userId) {
+    // Count total bookings
+    $countSql = "SELECT COUNT(*) as total FROM bookings WHERE user_id = ?";
+    $stmtC = $conn->prepare($countSql);
+    $stmtC->bind_param("i", $userId);
+    $stmtC->execute();
+    $resC = $stmtC->get_result();
+    if ($rowC = $resC->fetch_assoc()) {
+        $totalBookings = $rowC['total'];
+    }
+    $stmtC->close();
     // JOIN with tables to get the real name logic
     // MODIFIED: Filter by user_id to ensure privacy
     $bSql = "SELECT b.id, b.date, b.time, b.guests, b.floor, b.table_number, b.created_at, b.status,
@@ -79,10 +97,10 @@ if ($userId) {
              FROM bookings b
              LEFT JOIN tables t ON b.table_id = t.id
              WHERE b.user_id = ? 
-             ORDER BY b.date DESC, b.time DESC";
+             ORDER BY b.date DESC, b.time DESC LIMIT ? OFFSET ?";
              
     $stmt = $conn->prepare($bSql);
-    $stmt->bind_param("i", $userId);
+    $stmt->bind_param("iii", $userId, $bookingLimit, $bookingOffset);
     $stmt->execute();
     $res = $stmt->get_result();
     while ($row = $res->fetch_assoc()) {
@@ -99,6 +117,12 @@ echo json_encode([
         'limit' => $limit,
         'current_page' => $orderPage,
         'total_pages' => ceil($totalOrders / $limit)
+    ],
+    'booking_pagination' => [
+        'total_bookings' => $totalBookings,
+        'limit' => $bookingLimit,
+        'current_page' => $bookingPage,
+        'total_pages' => ceil($totalBookings / $bookingLimit)
     ]
 ]);
 
