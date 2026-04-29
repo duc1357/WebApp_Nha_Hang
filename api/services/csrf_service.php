@@ -43,8 +43,7 @@ class CsrfService {
         }
 
         // Ưu tiên: Header > POST field > JSON body
-        $headers = function_exists('getallheaders') ? getallheaders() : [];
-        $token   = $headers['X-CSRF-Token'] ?? ($_POST['csrf_token'] ?? '');
+        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf_token'] ?? '');
 
         if (empty($token)) {
             $raw   = file_get_contents('php://input');
