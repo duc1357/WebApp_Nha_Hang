@@ -1,19 +1,14 @@
-<?php
+﻿<?php
 // api/admin/delete_voucher.php
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/../../config/db.php';
-
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+require_once __DIR__ . '/auth_check_api.php'; // [2.3] Standardized
+require_once ROOT_PATH . '/config/db.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $id = intval($data['id'] ?? 0);
 
 if (!$id) {
-    echo json_encode(['success' => false, 'message' => 'Thiếu ID']);
+    echo json_encode(['success' => false, 'message' => 'Thiáº¿u ID']);
     exit;
 }
 
@@ -30,15 +25,16 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $id);
 
 if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Đã xóa vĩnh viễn mã giảm giá']);
+    echo json_encode(['success' => true, 'message' => 'ÄÃ£ xÃ³a vÄ©nh viá»…n mÃ£ giáº£m giÃ¡']);
 } else {
     // Handle FK constraint violation if any
     if ($conn->errno == 1451) {
-        echo json_encode(['success' => false, 'message' => 'Không thể xóa: Mã này đang được sử dụng trong lịch sử đơn hàng.']);
+        echo json_encode(['success' => false, 'message' => 'KhÃ´ng thá»ƒ xÃ³a: MÃ£ nÃ y Ä‘ang Ä‘Æ°á»£c sá»­ dá»¥ng trong lá»‹ch sá»­ Ä‘Æ¡n hÃ ng.']);
     } else {
-        echo json_encode(['success' => false, 'message' => 'Lỗi: ' . $conn->error]);
+        echo json_encode(['success' => false, 'message' => 'Lá»—i: ' . $conn->error]);
     }
 }
 
 $conn->close();
 ?>
+

@@ -1,7 +1,8 @@
 <?php
 // api/admin/export_revenue.php
-require_once __DIR__ . '/../../config/db.php';
-require_once __DIR__ . '/../../admin/auth_check.php'; // Ensure admin only
+// [2.3] Standardized auth middleware
+require_once __DIR__ . '/auth_check_api.php';
+require_once ROOT_PATH . '/config/db.php';
 
 header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename=doanh_thu_' . date('Y-m-d') . '.csv');

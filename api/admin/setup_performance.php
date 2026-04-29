@@ -1,7 +1,9 @@
 <?php
 // api/admin/setup_performance.php
+// [2.3] Chỉ admin mới được chạy migration/setup scripts
+require_once __DIR__ . '/auth_check_api.php';
 header('Content-Type: text/plain; charset=utf-8');
-require_once __DIR__ . '/../../config/db.php';
+require_once ROOT_PATH . '/config/db.php';
 
 $conn = getDbConnection();
 

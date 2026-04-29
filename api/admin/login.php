@@ -39,26 +39,20 @@ $result = $stmt->get_result();
 if ($result->num_rows === 1) {
     $user = $result->fetch_assoc();
     if (password_verify($password, $user['password'])) {
-        // Success
+        // Success – rotate CSRF token sau login (ngăn session fixation)
         $_SESSION['user_id'] = $user['id'];
-        $_SESSION['name'] = $user['name'];
-        $_SESSION['role'] = $user['role']; // 'admin'
+        $_SESSION['name']    = $user['name'];
+        $_SESSION['role']    = $user['role']; // 'admin'
+        CsrfService::rotateToken();
 
         echo json_encode(['success' => true, 'message' => 'Đăng nhập thành công']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Mật khẩu không đúng']);
     }
 } else {
-    // Check if user exists but not admin
-    $stmt2 = $conn->prepare("SELECT id FROM users WHERE email = ?");
-    $stmt2->bind_param("s", $email);
-    $stmt2->execute();
-    if ($stmt2->get_result()->num_rows > 0) {
-         echo json_encode(['success' => false, 'message' => 'Tài khoản không có quyền Admin']);
-    } else {
-         echo json_encode(['success' => false, 'message' => 'Email không tồn tại']);
-    }
-    $stmt2->close();
+    // [2.5] Generic message – tránh user enumeration attack
+    // Không phân biệt "Email không tồn tại" vs "Không có quyền Admin"
+    echo json_encode(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.']);
 }
 
 $stmt->close();

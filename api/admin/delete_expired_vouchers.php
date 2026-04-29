@@ -1,12 +1,7 @@
-<?php
+﻿<?php
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/../../config/db.php';
-
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+require_once __DIR__ . '/auth_check_api.php'; // [2.3] Standardized
+require_once ROOT_PATH . '/config/db.php';
 
 $conn = getDbConnection();
 
@@ -14,10 +9,11 @@ $conn = getDbConnection();
 $sql = "DELETE FROM vouchers WHERE expire_date < NOW()";
 if ($conn->query($sql)) {
     $deletedCount = $conn->affected_rows;
-    echo json_encode(['success' => true, 'message' => "Đã xóa $deletedCount mã hết hạn."]);
+    echo json_encode(['success' => true, 'message' => "ÄÃ£ xÃ³a $deletedCount mÃ£ háº¿t háº¡n."]);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Lỗi: ' . $conn->error]);
+    echo json_encode(['success' => false, 'message' => 'Lá»—i: ' . $conn->error]);
 }
 
 $conn->close();
 ?>
+

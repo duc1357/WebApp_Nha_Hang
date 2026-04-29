@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: text/html; charset=utf-8');
-require_once __DIR__ . '/../../config/constants.php';
+// [2.3] Chỉ admin mới được chạy script ALTER TABLE
+require_once __DIR__ . '/auth_check_api.php';
 require_once ROOT_PATH . '/config/db.php';
 
 $conn = getDbConnection();

@@ -1,59 +1,74 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/../../config/constants.php';
+// [2.3] Dùng auth_check_api.php chuẩn hóa (đã include constants.php + session check)
+require_once __DIR__ . '/auth_check_api.php';
 require_once ROOT_PATH . '/config/db.php';
-
-// Handle POST request
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid Request Method']);
     exit;
 }
 
-// Check if using FormData (files) or fallback to JSON (legacy support if needed, but we prioritize FormData)
-$name = $_POST['name'] ?? '';
-$price = $_POST['price'] ?? 0;
-$description = $_POST['description'] ?? '';
-$photoUrl = ''; // Default if no file uploaded
+// Sanitize và validate input
+$name        = trim(htmlspecialchars($_POST['name']        ?? '', ENT_QUOTES, 'UTF-8'));
+$price       = (int) ($_POST['price'] ?? 0);
+$description = trim(htmlspecialchars($_POST['description'] ?? '', ENT_QUOTES, 'UTF-8'));
+$photoUrl    = 'photo/default-food.png';
 
-if (!$name || !$price) {
-    echo json_encode(['success' => false, 'message' => 'Tên và giá là bắt buộc']);
+if (strlen($name) < 1 || strlen($name) > 100) {
+    echo json_encode(['success' => false, 'message' => 'Tên món phải từ 1-100 ký tự']);
+    exit;
+}
+if ($price <= 0 || $price > 10_000_000) {
+    echo json_encode(['success' => false, 'message' => 'Giá không hợp lệ']);
     exit;
 }
 
-// Handle File Upload
+// [2.4] File Upload Hardening
 if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
     $file = $_FILES['photo'];
-    $allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    
-    // Validate type (simple check)
-    // For stricter check use finfo
-    
+
+    // Giới hạn kích thước: 2MB
+    $maxSize = 2 * 1024 * 1024;
+    if ($file['size'] > $maxSize) {
+        echo json_encode(['success' => false, 'message' => 'Ảnh không được vượt quá 2MB']);
+        exit;
+    }
+
+    // Dùng finfo kiểm tra MIME type thực của file (không tin extension)
+    $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    // Map MIME → extension an toàn (không dùng extension từ tên file gốc)
+    $allowedMimes = [
+        'image/jpeg' => 'jpg',
+        'image/jpg'  => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+    ];
+
+    if (!array_key_exists($mimeType, $allowedMimes)) {
+        echo json_encode(['success' => false, 'message' => 'Chỉ chấp nhận ảnh JPG, PNG, WEBP']);
+        exit;
+    }
+
+    $safeExt   = $allowedMimes[$mimeType];
     $uploadDir = ROOT_PATH . '/photo/menu';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
-    
-    // Generate unique name: menu_TIMESTAMP.ext
-    $filename = 'menu_' . time() . '_' . rand(100,999) . '.' . $ext;
+
+    // Tên file duy nhất dùng uniqid (không đoán được)
+    $filename   = 'menu_' . uniqid('', true) . '.' . $safeExt;
     $targetPath = $uploadDir . '/' . $filename;
-    
+
     if (move_uploaded_file($file['tmp_name'], $targetPath)) {
         $photoUrl = 'photo/menu/' . $filename;
     } else {
         echo json_encode(['success' => false, 'message' => 'Lỗi lưu file ảnh']);
         exit;
     }
-} else {
-    // If user provided a URL string fallback (optional, from old logic)
-    // or just leave empty
-    $photoUrl = $_POST['photo'] ?? 'photo/default-food.png'; 
 }
 
 $conn = getDbConnection();

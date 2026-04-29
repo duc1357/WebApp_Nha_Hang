@@ -31,27 +31,41 @@ if (!isset($_FILES['avatar']) || $_FILES['avatar']['error'] !== UPLOAD_ERR_OK) {
 
 $file = $_FILES['avatar'];
 
-// Check allowed types
-$allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+// [2.4] Giới hạn kích thước: 2MB
+$maxSize = 2 * 1024 * 1024;
+if ($file['size'] > $maxSize) {
+    $response['message'] = 'Ảnh không được vượt quá 2MB';
+    echo json_encode($response);
+    exit;
+}
+
+// [2.4] Dùng finfo kiểm tra MIME type thực (không tin extension)
+$allowedMimes = [
+    'image/jpeg' => 'jpg',
+    'image/jpg'  => 'jpg',
+    'image/png'  => 'png',
+    'image/gif'  => 'gif',
+    'image/webp' => 'webp',
+];
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
-$mime = finfo_file($finfo, $file['tmp_name']);
+$mime  = finfo_file($finfo, $file['tmp_name']);
 finfo_close($finfo);
 
-if (!in_array($mime, $allowed)) {
+if (!array_key_exists($mime, $allowedMimes)) {
     $response['message'] = 'Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP)';
     echo json_encode($response);
     exit;
 }
 
-// Create directory if not exists
+// Tạo thư mục nếu chưa có
 $uploadDir = ROOT_PATH . '/photo/avatars';
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }
 
-// Generate unique name
-$ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-$filename = 'ua_' . $user_id . '_' . time() . '.' . $ext;
+// [2.4] Dùng safe extension từ MIME map (không từ tên file gốc)
+$safeExt    = $allowedMimes[$mime];
+$filename   = 'ua_' . $user_id . '_' . time() . '.' . $safeExt;
 $targetPath = $uploadDir . '/' . $filename;
 $dbPath = 'photo/avatars/' . $filename; // Path to save in DB
 

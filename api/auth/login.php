@@ -81,11 +81,11 @@ if (!$is_valid) {
 }
 
 // Đăng nhập thành công
-// Đăng nhập thành công
-// session_start(); // Handled by constants.php
 $_SESSION['user_id'] = $user['id'];
-$_SESSION['name'] = $user['name'];
-$_SESSION['role'] = $user['role'];
+$_SESSION['name']    = $user['name'];
+$_SESSION['role']    = $user['role'];
+// Rotate CSRF token sau login (ngăn session fixation và token reuse)
+CsrfService::rotateToken();
 
 echo json_encode([
     "success" => true,

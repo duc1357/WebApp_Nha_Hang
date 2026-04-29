@@ -1,13 +1,8 @@
-<?php
+﻿<?php
 // api/admin/update_voucher.php
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/../../config/db.php';
-
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+require_once __DIR__ . '/auth_check_api.php'; // [2.3] Standardized
+require_once ROOT_PATH . '/config/db.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -20,7 +15,7 @@ $usageLimit = intval($data['usage_limit'] ?? 100);
 $expireDate = $data['expire_date'] ?? '';
 
 if (!$id || !$code || !$discountValue || !$expireDate) {
-    echo json_encode(['success' => false, 'message' => 'Thiếu thông tin bắt buộc']);
+    echo json_encode(['success' => false, 'message' => 'Thiáº¿u thÃ´ng tin báº¯t buá»™c']);
     exit;
 }
 
@@ -32,7 +27,7 @@ $stmt = $conn->prepare($checkSql);
 $stmt->bind_param("si", $code, $id);
 $stmt->execute();
 if ($stmt->get_result()->num_rows > 0) {
-    echo json_encode(['success' => false, 'message' => 'Mã Voucher này đã tồn tại']);
+    echo json_encode(['success' => false, 'message' => 'MÃ£ Voucher nÃ y Ä‘Ã£ tá»“n táº¡i']);
     exit;
 }
 
@@ -49,10 +44,11 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("ssddisi", $code, $discountType, $discountValue, $minOrderValue, $usageLimit, $expireDate, $id);
 
 if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Cập nhật thành công']);
+    echo json_encode(['success' => true, 'message' => 'Cáº­p nháº­t thÃ nh cÃ´ng']);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Lỗi: ' . $conn->error]);
+    echo json_encode(['success' => false, 'message' => 'Lá»—i: ' . $conn->error]);
 }
 
 $conn->close();
 ?>
+

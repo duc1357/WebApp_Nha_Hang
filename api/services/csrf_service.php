@@ -1,47 +1,66 @@
 <?php
-// Ensure secure session is started
+// api/services/csrf_service.php
 require_once __DIR__ . '/../../config/constants.php';
 
 class CsrfService {
-    // Generate Token
-    public static function generateToken() {
+
+    /**
+     * Lấy CSRF token hiện tại, tạo mới nếu chưa có.
+     */
+    public static function generateToken(): string {
         if (empty($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
         return $_SESSION['csrf_token'];
     }
 
-    // Verify Token
-    public static function verifyToken($token) {
+    /**
+     * Rotate token sau các hành động quan trọng (login, logout, privilege change).
+     * Ngăn chặn tấn công session fixation và token reuse.
+     */
+    public static function rotateToken(): string {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        return $_SESSION['csrf_token'];
+    }
+
+    /**
+     * Xác thực CSRF token từ request.
+     */
+    public static function verifyToken(string $token): bool {
         if (!isset($_SESSION['csrf_token']) || empty($token)) {
             return false;
         }
         return hash_equals($_SESSION['csrf_token'], $token);
     }
 
-    // Check Headers/Input for Token
-    public static function validateRequest() {
-        // Skip for GET requests or non-modifying methods if strictly needed, 
-        // but typically all API calls modifying data should be checked.
+    /**
+     * Validate request method và CSRF token.
+     * Gọi ở đầu tất cả API endpoints thay đổi dữ liệu.
+     */
+    public static function validateRequest(): bool {
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             return true;
         }
 
-        $headers = getallheaders();
-        $token = $headers['X-CSRF-Token'] ?? ($_POST['csrf_token'] ?? '');
-        
-        // Also check JSON input if not found in headers
-        if (!$token) {
-            $input = json_decode(file_get_contents('php://input'), true);
+        // Ưu tiên: Header > POST field > JSON body
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $token   = $headers['X-CSRF-Token'] ?? ($_POST['csrf_token'] ?? '');
+
+        if (empty($token)) {
+            $raw   = file_get_contents('php://input');
+            $input = json_decode($raw, true);
             $token = $input['csrf_token'] ?? '';
         }
 
         if (!self::verifyToken($token)) {
-            error_log("CSRF Fail: Session Token: " . ($_SESSION['csrf_token'] ?? 'NULL') . " | Received: " . $token);
+            error_log("CSRF Fail | IP: " . ($_SERVER['REMOTE_ADDR'] ?? '-')
+                . " | Session token: " . ($_SESSION['csrf_token'] ?? 'NULL')
+                . " | Received: " . $token);
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'CSRF Validation Failed']);
             exit;
         }
+
         return true;
     }
 }
