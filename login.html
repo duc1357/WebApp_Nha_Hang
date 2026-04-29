@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Đăng nhập vào hệ thống Nhà Hàng Cơm Quê Dượng Bầu để đặt bàn, xem thực đơn và quản lý tài khoản.">
+    <meta property="og:title" content="Đăng nhập - Nhà Hàng Cơm Quê Dượng Bầu">
+    <meta property="og:description" content="Đăng nhập để đặt bàn trước, tích điểm và nhận ưu đãi riêng.">
+    <meta property="og:type" content="website">
+    <title>Đăng nhập - Nhà Hàng Cơm Quê Dượng Bầu</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        /* Một ít tinh chỉnh thêm, không đụng style cũ của bạn */
+        body.auth-page {
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #ffe6c7 0, #f5f5f5 40%, #e2ecff 100%);
+        }
+
+        .auth-bg {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.7), transparent 60%),
+                radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.5), transparent 55%);
+            opacity: 0.7;
+        }
+
+        .auth-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 900px;
+            padding: 16px;
+        }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+            color: #2c3e50;
+        }
+
+        .auth-logo-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 20px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+        }
+
+        .auth-brand-text h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .auth-brand-text p {
+            margin: 2px 0 0;
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .auth-card {
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow:
+                0 8px 24px rgba(0, 0, 0, 0.08),
+                0 1px 0 rgba(255, 255, 255, 0.7);
+            padding: 18px 18px 20px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            background: #f5f7fb;
+            padding: 4px;
+            border-radius: 999px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px 10px;
+            border-radius: 999px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            color: #555;
+        }
+
+        .auth-tab.active {
+            background: #ffffff;
+            color: #e67e22;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            font-weight: 600;
+        }
+
+        .auth-pane {
+            display: none;
+            animation: fadeIn .22s ease-out;
+        }
+
+        .auth-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            border-radius: 8px;
+            border: 1px solid #d0d7e2;
+            outline: none;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        .form-group input:focus {
+            border-color: #e67e22;
+            box-shadow: 0 0 0 1px rgba(230, 126, 34, 0.2);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 9px 10px;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: #fff;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 4px;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(230, 126, 34, 0.4);
+            opacity: 0.96;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        .form-message {
+            min-height: 18px;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        .form-message.error {
+            color: #e74c3c;
+        }
+
+        .form-message.success {
+            color: #27ae60;
+        }
+
+        @media (max-width: 640px) {
+            .auth-wrapper {
+                max-width: 420px;
+            }
+
+            .auth-brand {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+
+<body class="auth-page">
+    <!-- <script src="js/main.js?v=1.1"></script> -->
+
+    <div class="auth-bg"></div>
+
+    <div class="auth-wrapper">
+        <div class="auth-brand">
+            <div class="auth-logo-circle">DB</div>
+            <div class="auth-brand-text">
+                <h1>Nhà Hàng Cơm Quê Dượng Bầu</h1>
+                <p>Ẩm thực quê nhà – Đậm vị thân thương</p>
+            </div>
+        </div>
+
+        <div class="auth-card">
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Đăng nhập</button>
+                <button class="auth-tab" data-tab="register">Đăng ký</button>
+            </div>
+
+            <!-- LOGIN -->
+            <div id="tab-login" class="auth-pane active">
+                <form id="login-form" novalidate>
+                    <div class="form-group">
+                        <label for="login-identifier">Email hoặc SĐT</label>
+                        <input type="text" id="login-identifier" name="identifier"
+                            placeholder="nam@example.com hoặc 09..." required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-password">Mật khẩu</label>
+                        <input type="password" id="login-password" name="password" placeholder="••••••" minlength="4"
+                            required onkeydown="checkEnter(event, 'login')" />
+                    </div>
+
+                    <div style="text-align: right; margin-bottom: 12px;">
+                        <a href="forgot_password.html"
+                            style="font-size: 13px; color: #e67e22; text-decoration: none; font-weight: 500; transition: 0.2s;">Quên
+                            mật khẩu?</a>
+                    </div>
+                    <button type="button" class="btn-primary" id="btn-login" onclick="handleLogin()">Đăng nhập</button>
+                </form>
+                <div id="login-message" class="form-message"></div>
+            </div>
+
+            <!-- REGISTER -->
+            <div id="tab-register" class="auth-pane">
+                <form id="register-form" novalidate>
+                    <div class="form-group">
+                        <label for="reg-name">Họ tên</label>
+                        <input type="text" id="reg-name" name="name" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-phone">SĐT</label>
+                        <input type="tel" id="reg-phone" name="phone" placeholder="09..." required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-email">Email (tuỳ chọn)</label>
+                        <input type="email" id="reg-email" name="email" placeholder="nam@example.com" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-password">Mật khẩu</label>
+                        <input type="password" id="reg-password" name="password" minlength="4" required />
+                    </div>
+
+                    <button type="button" class="btn-primary" id="btn-register" onclick="handleRegister()">Đăng
+                        ký</button>
+                </form>
+                <div id="register-message" class="form-message"></div>
+            </div>
+
+            <!-- RESET PASSWORD -->
+            <div id="tab-reset" class="auth-pane">
+                <div style="text-align:center; margin-bottom:15px;">
+                    <h3 style="margin:0; font-size:18px; color:#2c3e50;">Khôi Phục Tài Khoản</h3>
+                    <p style="margin:5px 0 0; font-size:13px; color:#7f8c8d;">Xác minh thông tin để đặt lại mật khẩu</p>
+                </div>
+                <form id="reset-form" novalidate>
+                    <div class="form-group">
+                        <label for="reset-email">Email đã đăng ký</label>
+                        <input type="email" id="reset-email" required placeholder="Nhập email...">
+                    </div>
+                    <div class="form-group">
+                        <label for="reset-phone">Số điện thoại</label>
+                        <input type="tel" id="reset-phone" required placeholder="Nhập số điện thoại...">
+                    </div>
+                    <div class="form-group">
+                        <label for="reset-new-pass">Mật khẩu mới</label>
+                        <input type="password" id="reset-new-pass" required minlength="4"
+                            placeholder="Nhập mật khẩu mới">
+                    </div>
+                    <button type="button" class="btn-primary" id="btn-reset" onclick="handleReset()">Xác nhận đổi mật
+                        khẩu</button>
+                </form>
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="#" id="link-back-login"
+                        style="font-size: 13px; color: #7f8c8d; text-decoration:none;">&larr; Quay lại đăng nhập</a>
+                </div>
+                <div id="reset-message" class="form-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== GLOBAL HELPERS & INIT =====
+        let csrfToken = '';
+
+        // Auto-redirect if logged in
+        (function () {
+            const userJson = localStorage.getItem("restaurant_user");
+            if (userJson) {
+                window.location.href = "index.html";
+            }
+        })();
+
+        // CSRF & Fetch Wrapper
+        (async function initCsrf() {
+            try {
+                const res = await fetch('api/auth/get_csrf.php');
+                const data = await res.json();
+                if (data.success) {
+                    csrfToken = data.csrf_token;
+                    // console.log('CSRF Token loaded');
+                }
+            } catch (e) {
+                console.error('CSRF Init fail', e);
+            }
+        })();
+
+        const originalFetch = window.fetch;
+        window.fetch = async function (url, options = {}) {
+            if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method.toUpperCase())) {
+                if (!options.headers) options.headers = {};
+                if (options.headers instanceof Headers) {
+                    options.headers.append('X-CSRF-Token', csrfToken);
+                } else {
+                    options.headers['X-CSRF-Token'] = csrfToken;
+                }
+            }
+            return originalFetch(url, options);
+        };
+
+        // UI HELPERS
+        function setMessage(el, text, type) {
+            el.textContent = text || "";
+            el.classList.remove("error", "success");
+            if (type) el.classList.add(type);
+        }
+
+        function saveUser(data) {
+            localStorage.setItem("restaurant_user", JSON.stringify(data));
+        }
+
+        // ===== TAB SWITCHING =====
+        document.querySelectorAll(".auth-tab").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".auth-tab").forEach((b) => b.classList.remove("active"));
+                btn.classList.add("active");
+
+                const tab = btn.dataset.tab;
+                document.querySelectorAll(".auth-pane").forEach((p) => p.classList.remove("active"));
+                document.getElementById("tab-" + tab).classList.add("active");
+
+                // Clear messages
+                document.querySelectorAll(".form-message").forEach((m) => {
+                    m.textContent = "";
+                    m.classList.remove("error", "success");
+                });
+            });
+        });
+
+        // ===== LOGIN LOGIC =====
+        function handleLogin() {
+            const msg = document.getElementById("login-message");
+            const btn = document.getElementById("btn-login");
+            setMessage(msg, "", null);
+
+            const identifier = document.getElementById("login-identifier").value.trim();
+            const password = document.getElementById("login-password").value.trim();
+
+            if (!identifier || !password) {
+                setMessage(msg, "Vui lòng nhập đầy đủ thông tin.", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            const oldText = btn.textContent;
+            btn.textContent = "Đang đăng nhập...";
+
+            fetch("api/auth/login.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ identifier, password }),
+            })
+                .then((res) => {
+                    return res.json();
+                })
+                .then((data) => {
+                    if (!data.success) {
+                        setMessage(msg, data.message || "Đăng nhập thất bại.", "error");
+                        return;
+                    }
+
+                    saveUser(data.user || { identifier });
+                    setMessage(msg, "Đăng nhập thành công! Đang chuyển trang...", "success");
+
+                    const role = data.user && data.user.role ? data.user.role : "user";
+                    setTimeout(() => {
+                        if (role === "admin") {
+                            window.location.href = "admin/dashboard.php";
+                        } else {
+                            window.location.href = "index.html";
+                        }
+                    }, 600);
+                })
+                .catch((err) => {
+                    console.error(err);
+                    setMessage(msg, "Lỗi kết nối máy chủ.", "error");
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                });
+        }
+
+        // ===== REGISTER LOGIC =====
+        function handleRegister() {
+            const msg = document.getElementById("register-message");
+            const btn = document.getElementById("btn-register");
+            setMessage(msg, "", null);
+
+            const user = {
+                name: document.getElementById("reg-name").value.trim(),
+                phone: document.getElementById("reg-phone").value.trim(),
+                email: document.getElementById("reg-email").value.trim(),
+                password: document.getElementById("reg-password").value.trim(),
+            };
+
+            if (!user.name || !user.phone || !user.password) {
+                setMessage(msg, "Vui lòng điền đủ Họ tên, SĐT và Mật khẩu.", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            const oldText = btn.textContent;
+            btn.textContent = "Đang đăng ký...";
+
+            fetch("api/auth/register.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(user),
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    if (!data.success) {
+                        setMessage(msg, data.message || "Đăng ký thất bại.", "error");
+                        return;
+                    }
+                    setMessage(msg, "Đăng ký thành công! Bạn hãy chuyển sang tab Đăng nhập.", "success");
+                })
+                .catch(() => {
+                    setMessage(msg, "Lỗi kết nối máy chủ!", "error");
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                });
+        }
+
+        // ===== RESET PASSWORD LOGIC =====
+        function handleReset() {
+            const msg = document.getElementById("reset-message");
+            const btn = document.getElementById("btn-reset");
+            setMessage(msg, "", null);
+
+            const email = document.getElementById("reset-email").value.trim();
+            const phone = document.getElementById("reset-phone").value.trim();
+            const newPass = document.getElementById("reset-new-pass").value.trim();
+
+            if (!email || !phone || !newPass) {
+                setMessage(msg, "Vui lòng nhập đủ thông tin.", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            const oldText = btn.textContent;
+            btn.textContent = "Đang xử lý...";
+
+            fetch("api/auth/reset_password.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, phone, new_password: newPass })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setMessage(msg, data.message, "success");
+                        setTimeout(() => {
+                            document.getElementById("link-back-login").click();
+                            setMessage(document.getElementById("login-message"), "Đổi mật khẩu thành công! Hãy đăng nhập.", "success");
+                        }, 2000);
+                    } else {
+                        setMessage(msg, data.message, "error");
+                    }
+                })
+                .catch(() => {
+                    setMessage(msg, "Lỗi kết nối server.", "error");
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                });
+        }
+
+        // ===== ENTER KEY HANDLER =====
+        function checkEnter(event, type) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                if (type === 'login') handleLogin();
+                if (type === 'register') handleRegister();
+                if (type === 'reset') handleReset();
+            }
+        }
+
+        // ===== EVENT BINDINGS (Legacy / Forgot Pass) =====
+        const linkForgot = document.getElementById("link-forgot");
+        const linkBack = document.getElementById("link-back-login");
+        const tabsContainer = document.querySelector(".auth-tabs");
+        const tabReset = document.getElementById("tab-reset");
+
+        if (linkForgot) {
+            linkForgot.addEventListener("click", (e) => {
+                e.preventDefault();
+                tabsContainer.style.display = "none";
+                document.querySelectorAll(".auth-pane").forEach(p => p.classList.remove("active"));
+                tabReset.classList.add("active");
+            });
+        }
+
+        if (linkBack) {
+            linkBack.addEventListener("click", (e) => {
+                e.preventDefault();
+                tabsContainer.style.display = "flex";
+                document.querySelector('[data-tab="login"]').click();
+            });
+        }
+    </script>
+</body>
+
+</html>

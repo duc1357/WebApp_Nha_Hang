@@ -1,0 +1,29 @@
+# ========================
+# SECURITY – Không được commit lên Git
+# ========================
+
+# Environment variables (chứa credentials thật)
+.env
+# .env.example được commit (template không có giá trị thật)
+
+# Config files nếu cần gitignore riêng
+# config/constants.php
+# config/mail_config.php
+
+# Log files
+*.log
+logs/
+api/payment/*.log
+
+# Upload files (nên dùng cloud storage trong production)
+photo/avatars/
+photo/menu/
+
+# IDE & OS files
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
+
+# Agent tools (không phải source code)
+.agent/

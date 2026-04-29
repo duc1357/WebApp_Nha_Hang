@@ -1,0 +1,93 @@
+# ============================================================
+# .htaccess - Cấu hình bảo mật cho Nhà Hàng Cơm Quê Dượng Bầu
+# ============================================================
+
+# Bật RewriteEngine (cần mod_rewrite trên Apache/Laragon)
+Options -Indexes
+RewriteEngine On
+
+# ============================================================
+# BLOCK TRUY CẬP TRỰC TIẾP CÁC THƯ MỤC NHẠY CẢM
+# ============================================================
+
+# Chặn truy cập vào /config/ từ web
+RewriteRule ^config(/|$) - [F,L]
+
+# Chặn truy cập vào /Database/ từ web
+RewriteRule ^Database(/|$) - [F,L]
+
+# Chặn truy cập vào /lib/ từ web
+RewriteRule ^lib(/|$) - [F,L]
+
+# Chặn truy cập vào /logs/ từ web
+RewriteRule ^logs(/|$) - [F,L]
+
+# ============================================================
+# BLOCK FILE NHẠY CẢM
+# ============================================================
+
+# Chặn file .env (environment variables)
+<FilesMatch "^\.env">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Chặn file .env.example từ web (chỉ cần cho dev reference)
+<FilesMatch "^\.env\.example$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Chặn tất cả file .log
+<FilesMatch "\.log$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Chặn file SQL dump
+<FilesMatch "\.sql$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Chặn file .gitignore và git files
+<FilesMatch "^\.git">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# ============================================================
+# SECURITY HEADERS
+# ============================================================
+
+<IfModule mod_headers.c>
+    # Ngăn MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Ngăn clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Bật XSS filter của trình duyệt cũ
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Không gửi Referer khi navigate ra ngoài
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Xóa thông tin server version
+    Header always unset X-Powered-By
+    Header always unset Server
+</IfModule>
+
+# ============================================================
+# PHP SECURITY SETTINGS
+# ============================================================
+
+<IfModule mod_php.c>
+    # Tắt hiển thị lỗi PHP ra browser (chỉ log)
+    php_flag display_errors Off
+    php_flag log_errors On
+
+    # Giới hạn upload size (5MB)
+    php_value upload_max_filesize 5M
+    php_value post_max_size 8M
+</IfModule>

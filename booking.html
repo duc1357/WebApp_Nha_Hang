@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Đặt bàn online tại Nhà Hàng Cơm Quê Dượng Bầu. Nhanh chóng, tiện lợi, chọn phòng và vị trí ngồi mong muốn.">
+    <meta property="og:title" content="Đặt Bàn - Nhà Hàng Cơm Quê Dượng Bầu">
+    <meta property="og:description" content="Đặt bàn online tại Nhà Hàng Cơm Quê Dượng Bầu. Nhanh chóng, tiện lợi.">
+    <meta property="og:type" content="website">
+    <title>Đặt Bàn - Nhà Hàng Cơm Quê Dượng Bầu</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* FIX: Remove conflicting legacy background from style.css */
+        header::before {
+            display: none !important;
+            background: none !important;
+        }
+
+        header {
+            background-color: transparent;
+            /* Reset any global color */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-overlay">
+        <header
+            style="background: url('photo/luxury_bg.png') center/cover no-repeat; padding: 40px 0; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); position: relative;">
+            <div style="position: absolute; inset: 0; background: rgba(44, 62, 80, 0.5); z-index: 1;"></div>
+            <!-- Refined overlay for better text contrast -->
+            <h1 style="position: relative; z-index: 2; margin: 0;
+                       font-family: 'Outfit', sans-serif;
+                       font-size: 2.5rem;
+                       font-weight: 800;
+                       line-height: 1.2;
+                       letter-spacing: 0.5px;
+                       text-transform: uppercase;
+                       background: linear-gradient(to right, #fff, #f39c12);
+                       -webkit-background-clip: text;
+                       background-clip: text;
+                       -webkit-text-fill-color: transparent;
+                       text-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                Đặt Bàn Trực Tuyến
+            </h1>
+        </header>
+
+        <nav class="main-nav">
+            <a href="index.html">Trang Chủ</a>
+            <a href="index.html#menu">Thực Đơn</a>
+            <a href="booking.html" class="active">Đặt Bàn</a>
+            <div id="auth-actions" class="nav-auth"></div>
+        </nav>
+
+        <div class="container">
+            <div class="booking-section section-box">
+                <h2>Chọn Thông Tin Đặt Bàn</h2>
+
+                <!-- WRAPPER FOR 2-COLUMN LAYOUT -->
+                <div class="booking-layout">
+
+                    <!-- LEFT COLUMN: SƠ ĐỒ + TAB + FILTER -->
+                    <div class="booking-left-col">
+                        <!-- HALL SELECTION (Dynamic) -->
+                        <div class="hall-selection">
+                            <div id="floor-tabs" class="floor-tabs-container">
+                                <!-- Tabs will be injected here by JS -->
+                            </div>
+                        </div>
+
+                        <!-- FILTER SECTION (Moved inside for context) -->
+                        <div class="booking-filter">
+                            <div class="filter-group">
+                                <label for="date">Ngày đặt</label>
+                                <input type="date" id="date" onchange="loadTables()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="time">Giờ</label>
+                                <input type="time" id="time" onchange="loadTables()">
+                            </div>
+                            <div class="filter-group">
+                                <label for="guests">Số khách</label>
+                                <select id="guests">
+                                    <option value="1">1 người</option>
+                                    <option value="2" selected>2 người</option>
+                                    <option value="3">3 người</option>
+                                    <option value="4">4 người</option>
+                                    <option value="5">5+ người</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- VISUAL GRID (Dynamic) -->
+                        <div id="table-map-container">
+                            <!-- Grids will be injected here by JS -->
+                            <p class="text-muted text-center" style="padding: 20px;">Vui lòng chọn ngày giờ để xem sơ đồ
+                                bàn.</p>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: FORM INFO -->
+                    <div class="booking-right-col">
+                        <!-- CONFIRM FORM -->
+                        <div class="booking-confirm-form">
+                            <h3>Xác Nhận Đặt Bàn</h3>
+                            <p id="selection-summary" class="summary-text">Vui lòng chọn bàn...</p>
+
+                            <form onsubmit="submitBooking(); return false;">
+                                <input type="hidden" id="selected-floor" aria-hidden="true">
+                                <input type="hidden" id="selected-table" aria-hidden="true">
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="name">Họ tên</label>
+                                        <input id="name" required placeholder="Nhập họ tên...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="phone">SĐT</label>
+                                        <input id="phone" required placeholder="Nhập số điện thoại...">
+                                    </div>
+                                </div>
+                                
+                                <!-- Nút bật tắt chọn món trước -->
+                                <fieldset style="border: none; padding: 0; margin-bottom: 15px;">
+                                    <legend style="display: none;">Tùy chọn đặt món</legend>
+                                    <div class="preorder-toggle-group" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; border: 1px solid #eee;">
+                                        <label for="toggle-preorder" style="display: flex; align-items: center; cursor: pointer; font-weight: bold; color: #2c3e50; min-height: 44px;">
+                                            <input type="checkbox" id="toggle-preorder" style="width: 24px; height: 24px; margin-right: 10px;" onchange="togglePreorderSection()">
+                                            Kèm theo Đặt Món Trước (Thanh toán cọc 30%)
+                                        </label>
+                                    
+                                    <div id="preorder-section" style="display: none; margin-top: 15px;">
+                                        <h4 style="margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Thực đơn & Giỏ hàng</h4>
+                                        <div id="booking-menu-list" style="max-height: 200px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 15px;">
+                                            <p class="text-muted">Đang tải thực đơn...</p>
+                                        </div>
+                                        
+                                        <div style="background: #eef2f3; padding: 10px; border-radius: 5px;">
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                                <span>Tổng tiền món ăn:</span>
+                                                <strong id="preorder-total">0đ</strong>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; color: #d35400;">
+                                                <span>Số tiền cần cọc (30%):</span>
+                                                <strong id="preorder-deposit">0đ</strong>
+                                            </div>
+                                        </div>
+                                        </div>
+                                    </div>
+                                </fieldset>
+
+                                <button type="submit" id="btn-submit-booking" disabled>Xác Nhận Đặt Bàn</button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Payment Modal -->
+        <div id="qr-payment-modal" class="modal-overlay hidden">
+            <div class="modal-content text-center">
+                <h2>Thanh Toán Cọc Đặt Bàn</h2>
+                <p>Vui lòng dùng App Ngân Hàng hoặc Ví Điện Tử quét mã QR dưới đây:</p>
+                
+                <div class="qr-container">
+                    <img id="qr-code-img" src="" alt="Mã QR Thanh Toán" style="max-width:250px; background:#fff; padding:10px; border-radius:10px; margin:15px 0;">
+                </div>
+
+                <div class="payment-details" style="background:var(--light-bg); padding:15px; border-radius:8px; margin-bottom:15px;">
+                    <p style="margin-bottom:5px;"><strong>Số tiền cọc: </strong><span id="qr-amount" style="color:var(--primary); font-size:1.2rem; font-weight:bold;">0đ</span></p>
+                    <p><strong>Nội dung: </strong><span id="qr-content" style="font-family:monospace; font-size:1.1rem; background:#fff; padding:2px 5px; border:1px solid #ccc; border-radius:3px;">HD123</span></p>
+                </div>
+                
+                <p class="text-muted" style="font-size:0.9rem; margin-bottom:15px;">
+                    <i class="fas fa-spinner fa-spin"></i> Hệ thống đang chờ thanh toán...
+                </p>
+                
+                <button onclick="closeQrModal()" style="width: 100%; background: #e74c3c; color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 5px;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'">
+                    ✖ Đóng / Hủy Thanh Toán
+                </button>
+            </div>
+        </div>
+
+        <!-- Thêm giá trị cốt lõi (Reflective Design) -->
+        <div class="container section-box" style="margin-top: 40px; border-radius: 20px;">
+            <h2 style="font-size: clamp(1.5rem, 3vw, 2rem); display: block; position: static; transform: none;">Tại sao chọn Nhà Hàng Dượng Bầu?</h2>
+            <p style="color: var(--text-main); font-size: 1.1rem; max-width: 65ch; margin: 0 auto; line-height: 1.6; text-align: center;">
+                Khởi nguồn từ tình yêu với những mâm cơm nhà đầm ấm, chúng tôi mang đến những món ăn đậm đà hương vị đồng quê. Nguyên liệu chuẩn sạch, không gian ấm cúng và phong cách phục vụ chu đáo chính là lời cam kết từ chúng tôi.
+            </p>
+        </div>
+
+        <footer>
+            <div style="margin-bottom: 15px;">
+                <span style="display:inline-block; margin: 0 10px;">⭐ 4.9/5 Thực Khách Đánh Giá</span>
+                <span style="display:inline-block; margin: 0 10px;">🏆 Top 10 Nhà Hàng Quê 2025</span>
+                <span style="display:inline-block; margin: 0 10px;">🔒 Giao Dịch Bảo Mật An Toàn</span>
+            </div>
+            © 2025 Nhà Hàng Cơm Quê Dượng Bầu
+        </footer>
+    </div>
+
+    <script src="js/main.js?v=4"></script>
+    <script>
+        // Init logic specifically for this page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Render Header User Info
+            renderUserHeader();
+
+            // Auto fill form if user exists
+            const user = getCurrentUser();
+            if (user) {
+                document.getElementById('name').value = user.name || '';
+                document.getElementById('phone').value = user.phone || '';
+            }
+
+            // Set default date/time safely
+            const now = new Date();
+            const dateInput = document.getElementById('date');
+            const timeInput = document.getElementById('time');
+
+            if (dateInput) dateInput.valueAsDate = now;
+            if (timeInput) {
+                // Set to next hour for convenience
+                now.setHours(now.getHours() + 1);
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = '00';
+                timeInput.value = `${hours}:${minutes}`;
+            }
+
+            // Load tables
+            loadTables();
+        });
+    </script>
+</body>
+
+</html>

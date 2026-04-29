@@ -1,0 +1,194 @@
+<?php
+ob_clean();
+header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+
+require_once __DIR__ . '/../../config/constants.php';
+require_once ROOT_PATH . '/config/db.php';
+require_once __DIR__ . '/../../api/services/csrf_service.php';
+
+// Validate CSRF
+CsrfService::validateRequest();
+
+$conn = getDbConnection();
+
+// Auto-detect JSON or POST
+$contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
+if (strpos($contentType, 'application/json') !== false) {
+    $data = json_decode(file_get_contents('php://input'), true);
+} else {
+    $data = $_POST;
+}
+
+$name   = $data['name']   ?? '';
+$phone  = $data['phone']  ?? '';
+$date   = $data['date']   ?? '';
+$time   = $data['time']   ?? '';
+$guests = $data['guests'] ?? '';
+$floor  = $data['floor']  ?? '';
+$table_id = $data['table_id'] ?? null;
+$has_preorder = !empty($data['has_preorder']);
+$items = $data['items'] ?? [];
+
+if (!$name || !$phone || !$date || !$time || !$guests) {
+    echo json_encode(['success' => false, 'message' => 'Dữ liệu không đầy đủ.']);
+    exit;
+}
+
+if (!$table_id) {
+    echo json_encode(['success' => false, 'message' => 'Vui lòng chọn bàn!']);
+    exit;
+}
+
+$guestsInt = (int)$guests;
+$table_number_int = (int)$table_id; 
+
+$user_id = $_SESSION['user_id'] ?? null;
+if (!$user_id) {
+    echo json_encode(['success' => false, 'message' => 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.']);
+    exit;
+}
+
+// 1. Check duplicate & overlapping (+/- 2 hours)
+$checkSql = "
+    SELECT id, time 
+    FROM bookings 
+    WHERE table_id = ? 
+      AND date = ? 
+      AND status != 'cancelled'
+      AND ABS(TIMESTAMPDIFF(MINUTE, STR_TO_DATE(time, '%H:%i'), STR_TO_DATE(?, '%H:%i'))) <= 120
+";
+$stmt = $conn->prepare($checkSql);
+$stmt->bind_param("iss", $table_id, $date, $time);
+$stmt->execute();
+$res = $stmt->get_result();
+
+if ($res->num_rows > 0) {
+    echo json_encode(['success' => false, 'message' => 'Bàn này đã được đặt trong khoảng 2 tiếng gần thời gian bạn chọn. Vui lòng chọn bàn/thời gian khác.']);
+    $stmt->close();
+    $conn->close();
+    exit;
+}
+$stmt->close();
+
+// 2. Tính toán tiền nếu có Preorder
+$total_amount = 0;
+$deposit_amount = 0;
+$status = 'pending'; // Default
+
+$conn->begin_transaction();
+
+try {
+    if ($has_preorder && !empty($items)) {
+        $priceStmt = $conn->prepare("SELECT price FROM menu_items WHERE id = ?");
+        foreach ($items as &$item) {
+            $menu_item_id = (int)$item['menu_item_id'];
+            $qty = (int)$item['quantity'];
+            if ($qty <= 0) continue;
+            
+            $priceStmt->bind_param("i", $menu_item_id);
+            $priceStmt->execute();
+            $result = $priceStmt->get_result();
+            if ($row = $result->fetch_assoc()) {
+                $item['unit_price'] = $row['price'];
+                $total_amount += ($row['price'] * $qty);
+            }
+        }
+        $priceStmt->close();
+        
+        // Cọc 30% cho tổng món ăn
+        $deposit_amount = ceil($total_amount * 0.3); 
+        $status = 'awaiting_payment';
+    }
+
+    // 3. Insert Booking
+    $has_preorder_int = $has_preorder ? 1 : 0;
+    $payment_status = 'pending';
+
+    $sql = "INSERT INTO bookings (name, phone, date, time, guests, floor, table_number, table_id, user_id, status, has_preorder, total_amount, deposit_amount, payment_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $stmtIns = $conn->prepare($sql);
+    $stmtIns->bind_param("ssssisiiisidds", $name, $phone, $date, $time, $guestsInt, $floor, $table_number_int, $table_id, $user_id, $status, $has_preorder_int, $total_amount, $deposit_amount, $payment_status);
+    $stmtIns->execute();
+    $booking_id = $stmtIns->insert_id;
+    $stmtIns->close();
+
+    // 4. Insert Booking Items
+    if ($has_preorder && !empty($items)) {
+        $itemStmt = $conn->prepare("INSERT INTO booking_items (booking_id, menu_item_id, quantity, unit_price) VALUES (?, ?, ?, ?)");
+        foreach ($items as $item) {
+            if (!isset($item['unit_price'])) continue;
+            $qty = (int)$item['quantity'];
+            $menu_item_id = (int)$item['menu_item_id'];
+            $unit_price = (float)$item['unit_price'];
+            $itemStmt->bind_param("iiid", $booking_id, $menu_item_id, $qty, $unit_price);
+            $itemStmt->execute();
+        }
+        $itemStmt->close();
+    }
+    
+    $conn->commit();
+
+    // --- SEND EMAIL NOTIFICATION ---
+    require_once __DIR__ . '/../../api/services/email_service.php';
+    $uStmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
+    $uStmt->bind_param("i", $user_id);
+    $uStmt->execute();
+    $uRes = $uStmt->get_result();
+    $emailSent = false;
+    if ($row = $uRes->fetch_assoc()) {
+        $email = $row['email'];
+        if ($email) {
+            $subject = "[Dượng Bầu] Xác nhận yêu cầu đặt bàn";
+            $preorderText = $has_preorder ? "Bạn đã đặt món trước. Vui lòng thanh toán tiền cọc để xác nhận." : "";
+            $body = "<h2>Cảm ơn bạn đã yêu cầu đặt bàn!</h2>
+                        <p>Xin chào <strong>$name</strong>,</p>
+                        <p>Yêu cầu đặt bàn của bạn đã được ghi nhận:</p>
+                        <ul>
+                        <li><strong>Ngày:</strong> $date</li>
+                        <li><strong>Giờ:</strong> $time</li>
+                        <li><strong>Số khách:</strong> $guests</li>
+                        <li><strong>Bàn:</strong> $table_number_int (Sảnh $floor)</li>
+                        </ul>
+                        <p>$preorderText</p>
+                        <p>Trân trọng,<br>Nhà Hàng Cơm Quê Dượng Bầu</p>";
+            if (EmailService::send($email, $subject, $body)) {
+                $emailSent = true;
+            }
+        }
+    }
+    $uStmt->close();
+
+    // Return response
+    if ($has_preorder && $deposit_amount > 0) {
+        // Tạo mã QR bằng SePay API chuẩn theo file config (Or generic VietQR code)
+        // SePay free account often uses VietQR wrapper or their own dynamic QR
+        $payment_content = "BKG" . $booking_id; 
+        
+        $bank_account = defined('SEPAY_VA_ACCOUNT') ? SEPAY_VA_ACCOUNT : '';
+        $bank_id      = defined('SEPAY_BANK_NAME')  ? SEPAY_BANK_NAME  : 'MBBank';
+        $payUrl = "https://qr.sepay.vn/img?acc={$bank_account}&bank={$bank_id}&amount={$deposit_amount}&des={$payment_content}";
+
+        echo json_encode([
+            'success' => true,
+            'require_payment' => true,
+            'booking_id' => $booking_id,
+            'deposit_amount' => $deposit_amount,
+            'payUrl' => $payUrl,
+            'message' => 'Vui lòng thanh toán tiền cọc ' . number_format($deposit_amount) . 'đ để xác nhận giữ chỗ.'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => true,
+            'require_payment' => false,
+            'message' => 'Đặt bàn thành công! ' . ($emailSent ? 'Vui lòng kiểm tra email.' : '')
+        ]);
+    }
+
+} catch (Exception $e) {
+    $conn->rollback();
+    echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+}
+
+$conn->close();
+?>
