@@ -22,4 +22,10 @@ define('SEPAY_WEBHOOK_TOKEN', env('SEPAY_WEBHOOK_TOKEN', ''));
 
 // SePay Payment Info (lấy từ .env)
 define('SEPAY_VA_ACCOUNT', env('SEPAY_VA_ACCOUNT', ''));
-define('SEPAY_BANK_NAME', env('SEPAY_BANK_NAME', 'MBBank'));
+define('SEPAY_BANK_NAME',  env('SEPAY_BANK_NAME',  'MBBank'));
+
+// JWT Config (lấy từ .env)
+// Tạo secret bằng lệnh: php -r "echo bin2hex(random_bytes(32));"
+// QUAN TRỌNG: Phải là chuỗi ngẫu nhiên ít nhất 32 ký tự, KHÔNG hardcode!
+define('JWT_SECRET',      env('JWT_SECRET',      ''));
+define('JWT_TTL_SECONDS', (int) env('JWT_TTL_SECONDS', 604800)); // Mặc định: 7 ngày

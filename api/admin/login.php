@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once __DIR__ . '/../../api/services/csrf_service.php';
 require_once __DIR__ . '/../../api/services/rate_limit_service.php';
+require_once __DIR__ . '/../../api/services/logger_service.php';
 
 // Rate Limit: 10/min
 if (!RateLimitService::check('admin_login', 10, 60)) {
@@ -44,14 +45,18 @@ if ($result->num_rows === 1) {
         $_SESSION['name']    = $user['name'];
         $_SESSION['role']    = $user['role']; // 'admin'
         CsrfService::rotateToken();
+        Logger::auth('Admin login success', ['user_id' => $user['id'], 'email' => $email]);
 
         echo json_encode(['success' => true, 'message' => 'Đăng nhập thành công']);
     } else {
+        Logger::auth('Admin login failed – wrong password', ['email' => $email], 'auth');
+        Logger::security('Admin brute-force attempt?', ['email' => $email]);
         echo json_encode(['success' => false, 'message' => 'Mật khẩu không đúng']);
     }
 } else {
     // [2.5] Generic message – tránh user enumeration attack
     // Không phân biệt "Email không tồn tại" vs "Không có quyền Admin"
+    Logger::auth('Admin login failed – user not found or not admin', ['email' => $email]);
     echo json_encode(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.']);
 }
 
