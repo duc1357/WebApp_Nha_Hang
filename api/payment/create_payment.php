@@ -37,8 +37,24 @@ if ($table_id === '') $table_id = null;
 
 // FIX: Prioritize Session User ID to prevent spoofing
 $user_id = $_SESSION['user_id'] ?? null; 
-// If session is empty, we treat as Guest (null), ignoring POST user_id
-// $user_id        = !empty($data['user_id']) ? $data['user_id'] : null;
+
+// If table_id is provided but is a string like "R2", look up its actual ID
+if ($table_id !== null && !is_numeric($table_id)) {
+    $search = '%' . trim($table_id) . '%';
+    $stmtTable = $conn->prepare("SELECT id FROM tables WHERE name LIKE ? LIMIT 1");
+    if ($stmtTable) {
+        $stmtTable->bind_param("s", $search);
+        $stmtTable->execute();
+        $resultTable = $stmtTable->get_result();
+        if ($row = $resultTable->fetch_assoc()) {
+            $table_id = (int)$row['id'];
+        } else {
+            echo json_encode(['success' => false, 'message' => '❌ Tên bàn không hợp lệ hoặc không tồn tại. Thử lại "R2" hoặc "Bàn R2"']);
+            exit;
+        }
+        $stmtTable->close();
+    }
+}
 
 // 1) Tạo đơn hàng (orders)
 // Sửa lỗi logic: đảm bảo dùng created_at và status
