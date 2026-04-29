@@ -202,7 +202,13 @@
         </footer>
     </div>
 
-    <script src="js/main.js?v=4"></script>
+    <!-- JS Modules (thứ tự nạp quan trọng: utils → cart → menu → payment → booking) -->
+    <script src="js/utils.js?v=3.0"></script>
+    <script src="js/cart.js?v=3.0"></script>
+    <script src="js/menu.js?v=3.0"></script>
+    <script src="js/payment.js?v=3.0"></script>
+    <script src="js/booking.js?v=3.0"></script>
+
     <script>
         // Init logic specifically for this page
         document.addEventListener('DOMContentLoaded', () => {

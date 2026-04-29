@@ -372,7 +372,12 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <!-- JS Modules (thứ tự nạp quan trọng: utils → payment → profile → reviews) -->
+    <script src="js/utils.js?v=3.0"></script>
+    <script src="js/payment.js?v=3.0"></script>
+    <script src="js/profile.js?v=3.0"></script>
+    <script src="js/reviews.js?v=3.0"></script>
+
     <script>
         // Init logic for profile page
         document.addEventListener('DOMContentLoaded', () => {

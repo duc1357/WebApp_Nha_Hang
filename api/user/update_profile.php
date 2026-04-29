@@ -2,47 +2,52 @@
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/constants.php';
-require_once ROOT_PATH . '/config/db.php';
+require_once ROOT_PATH . '/api/base.php';
 
-$conn = getDbConnection();
-
-
+// Auth: chỉ user đã đăng nhập mới được cập nhật
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    apiError('Vui lòng đăng nhập', 401);
 }
 
-$data = json_decode(file_get_contents('php://input'), true);
+requireMethod('POST');
 
-if (!$data) {
-    echo json_encode(['success' => false, 'message' => 'Invalid data']);
-    exit;
-}
+$data = getJsonBody(required: true);
+$id   = (int) $_SESSION['user_id'];
 
-$id    = $_SESSION['user_id'];
-$name  = htmlspecialchars(trim($data['name'] ?? ''), ENT_QUOTES, 'UTF-8');
-$email = filter_var(trim($data['email'] ?? ''), FILTER_VALIDATE_EMAIL);
+// [3.4] Validate với length constraints
+$name  = getParam($data, 'name',  null, 'string');
+$email = getParam($data, 'email', null, 'email');
 $phone = trim($data['phone'] ?? '');
 
+if (!$name || strlen($name) < 2 || strlen($name) > 100) {
+    apiError('Tên phải có từ 2 đến 100 ký tự');
+}
 if (!$email) {
-    echo json_encode(['success' => false, 'message' => 'Email không hợp lệ']);
-    exit;
+    apiError('Email không hợp lệ');
+}
+if (!preg_match('/^0[3|5|7|8|9][0-9]{8}$/', $phone)) {
+    apiError('Số điện thoại không hợp lệ (10 số, bắt đầu 03/05/07/08/09)');
 }
 
-// Validate Phone (VN format: 10 digits, starts with 0)
-if (!preg_match('/^0[0-9]{9}$/', $phone)) {
-    echo json_encode(['success' => false, 'message' => 'Số điện thoại không hợp lệ (10 số)']);
-    exit;
-}
+require_once ROOT_PATH . '/config/db.php';
+$conn = getDbConnection();
 
-$sql = "UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("sssi", $name, $email, $phone, $id);
+// [3.4] Kiểm tra email đã được dùng bởi user khác chưa
+$checkStmt = $conn->prepare('SELECT id FROM users WHERE email = ? AND id != ?');
+$checkStmt->bind_param('si', $email, $id);
+$checkStmt->execute();
+if ($checkStmt->get_result()->num_rows > 0) {
+    apiError('Email này đã được sử dụng bởi tài khoản khác');
+}
+$checkStmt->close();
+
+$stmt = $conn->prepare('UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ?');
+$stmt->bind_param('sssi', $name, $email, $phone, $id);
 
 if ($stmt->execute()) {
-    echo json_encode(['success' => true]);
+    apiSuccess(null, 'Cập nhật thông tin thành công');
 } else {
-    echo json_encode(['success' => false, 'message' => $conn->error]);
+    apiError('Lỗi cập nhật thông tin', 500);
 }
 
 $stmt->close();
