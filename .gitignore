@@ -25,5 +25,3 @@ photo/menu/
 *.DS_Store
 Thumbs.db
 
-# Agent tools (không phải source code)
-.agent/
