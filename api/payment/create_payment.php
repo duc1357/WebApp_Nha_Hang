@@ -1,11 +1,12 @@
 <?php
-// Tắt hiển thị lỗi ngay từ đầu để tránh các Notice (như từ ob_clean) làm hỏng session_start()
+// Tắt hiển thị lỗi ngay từ đầu để tránh các Notice làm hỏng session_start()
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__DIR__, 2) . '/logs/payment_error.log');
 
-@ob_clean(); // Thêm @ để suppress Notice nếu không có buffer
+// CODE-07: Guard ob_clean() với ob_get_level()
+if (ob_get_level()) ob_clean();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
@@ -66,7 +67,9 @@ $sql = "INSERT INTO orders (user_id, total_amount, discount_amount, final_total,
         VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, NOW())";
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
-    echo json_encode(['success' => false, 'message' => '❌ Lỗi chuẩn bị câu lệnh: ' . $conn->error]);
+    error_log('[Payment] Prepare failed: ' . $conn->error);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống. Vui lòng thử lại.']);
     exit;
 }
 
@@ -75,7 +78,9 @@ if (!$stmt) {
 $stmt->bind_param("idddssiss", $user_id, $total_calculated, $discount_amount, $final_total, $payment_method, $address, $table_id, $note, $applied_voucher);
 
 if (!$stmt->execute()) {
-    echo json_encode(['success' => false, 'message' => '❌ Lỗi tạo đơn hàng: ' . $stmt->error]);
+    error_log('[Payment] Order insert failed: ' . $stmt->error);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Lỗi tạo đơn hàng. Vui lòng thử lại.']);
     exit;
 }
 $order_id = $stmt->insert_id;

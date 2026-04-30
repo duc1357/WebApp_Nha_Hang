@@ -1,5 +1,6 @@
 <?php
-ob_clean();
+// CODE-07: Guard ob_clean() với ob_get_level()
+if (ob_get_level()) ob_clean();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
@@ -80,21 +81,36 @@ $conn->begin_transaction();
 
 try {
     if ($has_preorder && !empty($items)) {
-        $priceStmt = $conn->prepare("SELECT price FROM menu_items WHERE id = ?");
-        foreach ($items as &$item) {
-            $menu_item_id = (int)$item['menu_item_id'];
-            $qty = (int)$item['quantity'];
-            if ($qty <= 0) continue;
-            
-            $priceStmt->bind_param("i", $menu_item_id);
+        // PERF-01: Bulk query thay vì N+1 query trong vòng lặp
+        $ids = array_map('intval', array_column($items, 'menu_item_id'));
+        $ids = array_filter($ids); // loại bỏ id = 0
+
+        if (!empty($ids)) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $types        = str_repeat('i', count($ids));
+            $priceStmt    = $conn->prepare("SELECT id, price FROM menu_items WHERE id IN ($placeholders)");
+            $priceStmt->bind_param($types, ...$ids);
             $priceStmt->execute();
-            $result = $priceStmt->get_result();
-            if ($row = $result->fetch_assoc()) {
-                $item['unit_price'] = $row['price'];
-                $total_amount += ($row['price'] * $qty);
+            $priceResult = $priceStmt->get_result();
+
+            // Build price map
+            $priceMap = [];
+            while ($row = $priceResult->fetch_assoc()) {
+                $priceMap[$row['id']] = (int) $row['price'];
             }
+            $priceStmt->close();
+
+            // Apply real prices to items
+            foreach ($items as &$item) {
+                $menu_item_id = (int) $item['menu_item_id'];
+                $qty          = max(0, (int) $item['quantity']);
+                if ($qty <= 0 || !isset($priceMap[$menu_item_id])) continue;
+
+                $item['unit_price'] = $priceMap[$menu_item_id];
+                $total_amount      += $priceMap[$menu_item_id] * $qty;
+            }
+            unset($item);
         }
-        $priceStmt->close();
         
         // Cọc 30% cho tổng món ăn
         $deposit_amount = ceil($total_amount * 0.3); 
@@ -187,7 +203,9 @@ try {
 
 } catch (Exception $e) {
     $conn->rollback();
-    echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+    error_log('[BookTable] Exception: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống. Vui lòng thử lại.']);
 }
 
 $conn->close();

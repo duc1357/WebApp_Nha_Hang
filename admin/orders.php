@@ -4,6 +4,7 @@ require_once 'auth_check.php';
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    <link rel="icon" href="../photo/favicon.png" type="image/png">
     <meta charset="UTF-8">
     <title>Quản Lý Đơn Hàng - Dượng Bầu Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

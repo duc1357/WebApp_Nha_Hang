@@ -22,6 +22,15 @@ RewriteRule ^lib(/|$) - [F,L]
 # Chặn truy cập vào /logs/ từ web
 RewriteRule ^logs(/|$) - [F,L]
 
+# CODE-14: Chặn truy cập vào /tests/ từ web (chỉ dùng nội bộ)
+RewriteRule ^tests(/|$) - [F,L]
+
+# CODE-14: Chặn các file debug/test ở root
+<FilesMatch "^(test_payment|make_circle)\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
 # ============================================================
 # BLOCK FILE NHẠY CẢM
 # ============================================================

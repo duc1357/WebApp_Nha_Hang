@@ -1,6 +1,6 @@
 <div class="sidebar">
     <div class="brand">
-        <div style="width:32px;height:32px;background:var(--primary);border-radius:6px;"></div>
+        <img src="../photo/favicon.png" alt="Logo" style="width: 36px; height: 36px; object-fit: cover; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
         Dượng Bầu
     </div>
     <a href="dashboard.php" class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : ''; ?>">Tổng quan</a>

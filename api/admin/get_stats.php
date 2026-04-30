@@ -1,5 +1,6 @@
 <?php
-ob_clean();
+// CODE-07: Guard ob_clean() với ob_get_level()
+if (ob_get_level()) ob_clean();
 require_once __DIR__ . '/auth_check_api.php';
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');

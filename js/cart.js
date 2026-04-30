@@ -65,15 +65,20 @@ window.addToCart = function(arg1, arg2, arg3, arg4) {
                     position: 'fixed', top: rect.top + 'px', left: rect.left + 'px',
                     width: rect.width + 'px', height: rect.height + 'px',
                     zIndex: '9999', borderRadius: '50%', opacity: '0.8',
-                    transition: 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)'
+                    transformOrigin: 'top left',
+                    // CODE-13: CHI animate transform+opacity (GPU composite), KHONG animate top/left/width/height (gây reflow)
+                    transition: 'transform 0.8s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.8s ease'
                 });
                 document.body.appendChild(imgClone);
 
                 requestAnimationFrame(() => {
-                    Object.assign(imgClone.style, {
-                        top: (cartRect.top + 10) + 'px', left: (cartRect.left + 10) + 'px',
-                        width: '30px', height: '30px', opacity: '0'
-                    });
+                    // Dùng translate+scale thay vì thay đổi top/left/width/height để tránh reflow
+                    const targetX = (cartRect.left + 10) - rect.left;
+                    const targetY = (cartRect.top + 10) - rect.top;
+                    const scaleX  = 30 / rect.width;
+                    const scaleY  = 30 / rect.height;
+                    imgClone.style.transform = `translate(${targetX}px, ${targetY}px) scale(${scaleX}, ${scaleY})`;
+                    imgClone.style.opacity   = '0';
                 });
                 setTimeout(() => {
                     imgClone.remove();

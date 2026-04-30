@@ -1,5 +1,6 @@
 <?php
-ob_clean();
+// CODE-07: Guard ob_clean() với ob_get_level()
+if (ob_get_level()) ob_clean();
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/constants.php';

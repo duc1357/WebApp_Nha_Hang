@@ -4,11 +4,24 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once ROOT_PATH . '/config/mail_config.php';
 require_once ROOT_PATH . '/lib/SimpleSMTP.php';
+require_once ROOT_PATH . '/api/services/csrf_service.php';
+require_once ROOT_PATH . '/api/services/rate_limit_service.php';
+
+// Rate limit: 3 lần / 60s để tránh OTP brute-force
+if (!RateLimitService::check('send_otp', 3, 60)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.']);
+    exit;
+}
+
+// SEC-02: Validate CSRF
+CsrfService::validateRequest();
 
 $data = json_decode(file_get_contents('php://input'), true);
-$email = $data['email'] ?? '';
+$email = trim($data['email'] ?? '');
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Email không hợp lệ']);
     exit;
 }
@@ -21,21 +34,28 @@ $stmt->bind_param("s", $email);
 $stmt->execute();
 $res = $stmt->get_result();
 
+// SEC-06: Trả message chung để tránh email enumeration attack
 if ($res->num_rows === 0) {
-    echo json_encode(['success' => false, 'message' => 'Email không tồn tại trong hệ thống']);
+    $stmt->close();
+    $conn->close();
+    // Vẫn trả success=true để attacker không biết email có tồn tại không
+    echo json_encode(['success' => true, 'message' => 'Nếu email tồn tại, chúng tôi đã gửi mã OTP. Vui lòng kiểm tra hộp thư.']);
     exit;
 }
 
 $user = $res->fetch_assoc();
+$stmt->close();
 
-// 2. Generate OTP
-$otp = rand(100000, 999999);
+// 2. SEC-07: Generate OTP dùng random_int() (CSPRNG, an toàn hơn rand())
+$otp = random_int(100000, 999999);
 $expiry = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
 // 3. Save to DB
 $update = $conn->prepare("UPDATE users SET otp_code = ?, otp_expiry = ? WHERE id = ?");
 $update->bind_param("ssi", $otp, $expiry, $user['id']);
 $update->execute();
+$update->close();
+$conn->close();
 
 // 4. Send Email
 $mailer = new SimpleSMTP(MAIL_HOST, MAIL_USER, MAIL_PASS, MAIL_PORT);
@@ -49,12 +69,11 @@ $body = "
 ";
 
 if ($mailer->send($email, $subject, $body, MAIL_FROM_NAME)) {
-    echo json_encode(['success' => true, 'message' => 'Đã gửi mã OTP đến email của bạn']);
+    echo json_encode(['success' => true, 'message' => 'Nếu email tồn tại, chúng tôi đã gửi mã OTP. Vui lòng kiểm tra hộp thư.']);
 } else {
+    http_response_code(500);
     echo json_encode([
-        'success' => false, 
-        'message' => 'Lỗi gửi email: ' . $mailer->error
+        'success' => false,
+        'message' => 'Lỗi gửi email. Vui lòng thử lại sau.'
     ]);
 }
-
-$conn->close();

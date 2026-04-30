@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../api/services/logger_service.php';
 // Rate Limit: 10/min
 if (!RateLimitService::check('admin_login', 10, 60)) {
     http_response_code(429);
-    echo json_encode(['success' => false, 'message' => 'Qúa nhiều lần thử.']);
+    echo json_encode(['success' => false, 'message' => 'Quá nhiều lần thử.']);
     exit;
 }
 
@@ -25,6 +25,7 @@ $email = isset($data['email']) ? trim($data['email']) : '';
 $password = isset($data['password']) ? trim($data['password']) : '';
 
 if (empty($email) || empty($password)) {
+    http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Vui lòng nhập email và mật khẩu']);
     exit;
 }
@@ -40,7 +41,8 @@ $result = $stmt->get_result();
 if ($result->num_rows === 1) {
     $user = $result->fetch_assoc();
     if (password_verify($password, $user['password'])) {
-        // Success – rotate CSRF token sau login (ngăn session fixation)
+        // SEC-08: Regenerate session ID để ngăn session fixation attack
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['name']    = $user['name'];
         $_SESSION['role']    = $user['role']; // 'admin'
@@ -49,17 +51,17 @@ if ($result->num_rows === 1) {
 
         echo json_encode(['success' => true, 'message' => 'Đăng nhập thành công']);
     } else {
-        Logger::auth('Admin login failed – wrong password', ['email' => $email], 'auth');
+        Logger::auth('Admin login failed - wrong password', ['email' => $email], 'auth');
         Logger::security('Admin brute-force attempt?', ['email' => $email]);
-        echo json_encode(['success' => false, 'message' => 'Mật khẩu không đúng']);
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.']);
     }
 } else {
-    // [2.5] Generic message – tránh user enumeration attack
-    // Không phân biệt "Email không tồn tại" vs "Không có quyền Admin"
-    Logger::auth('Admin login failed – user not found or not admin', ['email' => $email]);
+    // Generic message – tránh user enumeration attack
+    Logger::auth('Admin login failed - user not found or not admin', ['email' => $email]);
+    http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.']);
 }
 
 $stmt->close();
 $conn->close();
-?>

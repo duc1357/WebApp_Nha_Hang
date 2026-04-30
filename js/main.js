@@ -1,65 +1,13 @@
-// script.js - Nhà Hàng Cơm Quê Dượng Bầu
+// main.js - Nhà Hàng Cơm Quê Dượng Bầu
+// Phụ thuộc (phải nạp trước): utils.js, cart.js
+// Thứ tự script trong HTML: utils.js -> cart.js -> main.js
 
-// script.js - Nhà Hàng Cơm Quê Dượng Bầu
+// CODE-01: Không khai báo lại các global đã có trong utils.js/cart.js:
+//   - csrfToken, appliedVoucher, cart  -> utils.js + cart.js
+//   - CSRF init + fetch interceptor    -> utils.js
+//   - getCurrentUser, showToast, etc   -> utils.js
+//   - addToCart, updateCart, checkVoucher -> cart.js
 
-let cart = [];
-let appliedVoucher = null; // Store applied voucher info
-let csrfToken = ''; // Store Global CSRF Token
-
-// Init CSRF
-(async function initCsrf() {
-    try {
-        const res = await fetch('api/auth/get_csrf.php');
-        const data = await res.json();
-        if (data.success) {
-            csrfToken = data.csrf_token;
-            console.log('CSRF Protected');
-        }
-    } catch (e) { console.error('CSRF Init fail', e); }
-})();
-
-// Global Fetch Interceptor to attach CSRF Token
-const originalFetch = window.fetch;
-window.fetch = async function(url, options = {}) {
-    // Only attach to mutating requests
-    if (options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method.toUpperCase())) {
-        if (!options.headers) {
-            options.headers = {}; 
-        }
-        
-        // Handle if Headers object or plain object
-        if (options.headers instanceof Headers) {
-            options.headers.append('X-CSRF-Token', csrfToken);
-        } else {
-            // Assume plain object
-            options.headers['X-CSRF-Token'] = csrfToken;
-        }
-    }
-    return originalFetch(url, options);
-};
-
-/** Load cart from localStorage on init */
-try {
-    const savedCart = localStorage.getItem('restaurant_cart');
-    if (savedCart) {
-        cart = JSON.parse(savedCart);
-    }
-} catch (e) {
-    console.error('Lỗi parse cart:', e);
-    cart = [];
-}
-
-/** User helper */
-function getCurrentUser() {
-    const userJson = localStorage.getItem('restaurant_user');
-    if (!userJson) return null;
-    try {
-        return JSON.parse(userJson);
-    } catch (e) {
-        console.error('Lỗi parse user:', e);
-        return null;
-    }
-}
 
 /** Render Header User Info */
 function renderUserHeader() {
@@ -464,62 +412,10 @@ function toggleCart() {
         popup.classList.toggle('hidden');
     }
 }
-/* =========================================
-   UTILITIES & TOAST NOTIFICATION
-   ========================================= */
-
-// Format currency
-const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-};
-
-// Toast Notification
-function showToast(message, type = 'info') {
-    // Remove existing toast
-    const existing = document.querySelector('.toast-notification');
-    if (existing) existing.remove();
-
-    const toast = document.createElement('div');
-    toast.className = `toast-notification toast-${type}`;
-    toast.textContent = message;
-    
-    document.body.appendChild(toast);
-
-    // Trigger animation
-    setTimeout(() => toast.classList.add('show'), 10);
-
-    // Auto hide
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-// Loading State Helper
-function setLoading(btn, isLoading, text = 'Đang xử lý...') {
-    if (!btn) return;
-    if (isLoading) {
-        btn.dataset.originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = `<span class="spinner"></span> ${text}`;
-    } else {
-        btn.disabled = false;
-        btn.innerHTML = btn.dataset.originalText || 'Gửi';
-    }
-}
-
-// Validation Helpers
-function validatePhone(phone) {
-    const re = /^(0[3|5|7|8|9])+([0-9]{8})$/;
-    return re.test(phone);
-}
-
-function validateDate(dateStr) {
-    const selected = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return selected >= today;
-}
+/* === Utilities đã có trong utils.js – không khai báo lại ở đây ===
+   formatCurrency, showToast, setLoading, validatePhone, validateDate
+   được dùng trực tiếp thông qua window.* từ utils.js
+*/
 
 /* =========================================
    CART LOGIC (Updated with Toast)

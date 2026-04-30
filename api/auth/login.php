@@ -28,6 +28,7 @@ $identifier = trim($data['identifier'] ?? '');
 $password   = trim($data['password'] ?? '');
 
 if ($identifier === '' || $password === '') {
+    http_response_code(400);
     echo json_encode([
         "success" => false,
         "message" => "Thiếu email/SĐT hoặc mật khẩu"
@@ -46,41 +47,33 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
+    http_response_code(401);
     echo json_encode([
         "success" => false,
-        "message" => "Tài khoản không tồn tại"
+        "message" => "Email/SĐT hoặc mật khẩu không đúng"
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 $user = $result->fetch_assoc();
 
-// BẢO MẬT: Kiểm tra mật khẩu (Hashed hoặc Legacy)
-// password_verify trả về true nếu khớp hash
-// Nếu không khớp hash, kiểm tra xem có khớp plain text không (cho user cũ)
-$is_valid = false;
-if (password_verify($password, $user['password'])) {
-    $is_valid = true;
-} elseif ($password === $user['password']) {
-    // Legacy plain text user -> Khớp
-    $is_valid = true;
-    // [SECURITY FIX] Dùng prepared statement thay vì string concatenation
-    $newHash = password_hash($password, PASSWORD_BCRYPT);
-    $upgradeStmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
-    $upgradeStmt->bind_param("si", $newHash, $user['id']);
-    $upgradeStmt->execute();
-    $upgradeStmt->close();
-}
+// BẢO MẬT: Kiểm tra mật khẩu (BCrypt hash)
+$is_valid = password_verify($password, $user['password']);
+
+// Note: Legacy plain-text fallback đã bị xóa. Chạy migration script nếu có user cỳ chưa được hash.
 
 if (!$is_valid) {
+    http_response_code(401);
     echo json_encode([
         "success" => false,
-        "message" => "Sai mật khẩu"
+        "message" => "Email/SĐT hoặc mật khẩu không đúng"
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 // Đăng nhập thành công
+// SEC-08: Regenerate session ID để ngăn session fixation attack
+session_regenerate_id(true);
 $_SESSION['user_id'] = $user['id'];
 $_SESSION['name']    = $user['name'];
 $_SESSION['role']    = $user['role'];

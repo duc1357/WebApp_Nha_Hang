@@ -18,9 +18,9 @@ class SimpleSMTP {
 
     public function send($to, $subject, $body, $fromName) {
         // Detect if running on localhost (XAMPP/Laragon/Local) or Production
+        $serverName = $_SERVER['SERVER_NAME'] ?? 'localhost';
         $whitelist = ['127.0.0.1', '::1', 'localhost'];
-        // Check if domain ends with .test (Laragon default)
-        $isLocal = in_array($_SERVER['SERVER_NAME'], $whitelist) || substr($_SERVER['SERVER_NAME'], -5) === '.test';
+        $isLocal = in_array($serverName, $whitelist) || substr($serverName, -5) === '.test' || $serverName === 'localhost';
 
         $contextOptions = [];
         if ($isLocal) {
