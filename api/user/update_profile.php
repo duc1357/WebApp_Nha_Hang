@@ -3,6 +3,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/api/base.php';
+require_once ROOT_PATH . '/api/services/csrf_service.php';
 
 // Auth: chỉ user đã đăng nhập mới được cập nhật
 if (!isset($_SESSION['user_id'])) {
@@ -10,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 requireMethod('POST');
+CsrfService::validateRequest();
 
 $data = getJsonBody(required: true);
 $id   = (int) $_SESSION['user_id'];
@@ -25,7 +27,7 @@ if (!$name || strlen($name) < 2 || strlen($name) > 100) {
 if (!$email) {
     apiError('Email không hợp lệ');
 }
-if (!preg_match('/^0[3|5|7|8|9][0-9]{8}$/', $phone)) {
+if (!preg_match('/^0[35789][0-9]{8}$/', $phone)) {
     apiError('Số điện thoại không hợp lệ (10 số, bắt đầu 03/05/07/08/09)');
 }
 

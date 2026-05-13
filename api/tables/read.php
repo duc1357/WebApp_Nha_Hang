@@ -5,7 +5,7 @@ require_once ROOT_PATH . '/config/db.php';
 
 $conn = getDbConnection();
 
-$sql = "SELECT * FROM tables ORDER BY floor ASC, id ASC"; // Already selects *, so status is included if column exists
+$sql = "SELECT id, name, floor, capacity, status FROM tables ORDER BY floor ASC, id ASC";
 $result = $conn->query($sql);
 
 $tables = [];

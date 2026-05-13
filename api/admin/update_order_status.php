@@ -1,7 +1,8 @@
 <?php
-// session_start(); // Handled by auth_check_api
 require_once __DIR__ . '/auth_check_api.php';
-ob_clean();
+requireAdminPost();
+
+if (ob_get_level()) ob_clean();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
@@ -9,61 +10,83 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
 
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
+require_once ROOT_PATH . '/api/services/OrderService.php';
 
-$conn = getDbConnection();
-
-// ĐỌC JSON TỪ FETCH
-$raw  = file_get_contents('php://input');
-$data = json_decode($raw, true);
-
+$data = json_decode(file_get_contents('php://input'), true);
 if (!is_array($data)) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Dữ liệu JSON không hợp lệ'
-    ], JSON_UNESCAPED_UNICODE);
-    $conn->close();
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'JSON khong hop le'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$id     = (int)($data['id'] ?? 0);
-$status = trim($data['status'] ?? '');
-
-// CHO PHÉP CHỈ 2 TRẠNG THÁI NÀY
-$allowed = ['pending', 'paid', 'cancelled', 'confirmed'];
+$id = (int)($data['id'] ?? 0);
+$status = trim((string)($data['status'] ?? ''));
+$allowed = ['pending', 'paid', 'cancelled'];
 
 if ($id <= 0 || !in_array($status, $allowed, true)) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'ID hoặc trạng thái không hợp lệ'
-    ], JSON_UNESCAPED_UNICODE);
-    $conn->close();
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'ID hoac trang thai khong hop le'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// UPDATE TRONG BẢNG orders
-$stmt = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
-$stmt->bind_param("si", $status, $id);
+$conn = getDbConnection();
+$inTransaction = false;
 
-if ($stmt->execute()) {
+try {
+    if ($status === 'paid') {
+        $conn->begin_transaction();
+        $inTransaction = true;
+        $result = OrderService::markOrderPaid($conn, $id, 'cash');
+
+        if (!$result['success']) {
+            $conn->rollback();
+            $inTransaction = false;
+            http_response_code($result['message'] === 'Order not found' ? 404 : 409);
+            echo json_encode(['success' => false, 'message' => $result['message']], JSON_UNESCAPED_UNICODE);
+            $conn->close();
+            exit;
+        }
+
+        $conn->commit();
+        $inTransaction = false;
+        echo json_encode([
+            'success' => true,
+            'message' => 'Cap nhat trang thai thanh cong',
+            'id' => $id,
+            'status' => $status,
+        ], JSON_UNESCAPED_UNICODE);
+        $conn->close();
+        exit;
+    }
+
+    $stmt = $conn->prepare('UPDATE orders SET status = ? WHERE id = ?');
+    if (!$stmt) {
+        throw new RuntimeException('Prepare order status update failed: ' . $conn->error);
+    }
+
+    $stmt->bind_param('si', $status, $id);
+    $stmt->execute();
+
     if ($stmt->affected_rows > 0) {
         echo json_encode([
             'success' => true,
-            'message' => 'Cập nhật trạng thái thành công',
-            'id'      => $id,
-            'status'  => $status
+            'message' => 'Cap nhat trang thai thanh cong',
+            'id' => $id,
+            'status' => $status,
         ], JSON_UNESCAPED_UNICODE);
     } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Không tìm thấy đơn để cập nhật'
-        ], JSON_UNESCAPED_UNICODE);
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Khong tim thay don de cap nhat'], JSON_UNESCAPED_UNICODE);
     }
-} else {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Lỗi MySQL: ' . $stmt->error
-    ], JSON_UNESCAPED_UNICODE);
+
+    $stmt->close();
+} catch (Throwable $e) {
+    if ($inTransaction) {
+        $conn->rollback();
+    }
+    error_log('[AdminUpdateOrderStatus] ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Khong the cap nhat trang thai don hang'], JSON_UNESCAPED_UNICODE);
 }
 
-$stmt->close();
 $conn->close();

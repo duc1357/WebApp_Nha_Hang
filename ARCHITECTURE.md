@@ -84,7 +84,7 @@ Dùng `api/services/logger_service.php` thay vì `error_log()` thuần.
   "level": "INFO",
   "channel": "auth",
   "message": "Admin login success",
-  "context": { "user_id": 1, "email": "admin@example.com" },
+  "context": { "user_id": 1, "email": "admin.demo@example.test" },
   "request": { "ip": "1.2.3.4", "method": "POST", "uri": "/api/admin/login.php" }
 }
 ```

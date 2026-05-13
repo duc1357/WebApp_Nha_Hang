@@ -13,7 +13,9 @@ if (!$code) {
 }
 
 $conn = getDbConnection();
-$sql = "SELECT * FROM vouchers WHERE code = ? AND is_active = 1";
+$sql = "SELECT code, discount_type, discount_value, min_order_value, expire_date, usage_limit, used_count
+        FROM vouchers
+        WHERE code = ? AND is_active = 1";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $code);
 $stmt->execute();

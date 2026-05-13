@@ -48,7 +48,7 @@ if ($row = $result->fetch_assoc()) {
         // 3. Hash new password and update
         $new_hash = password_hash($new_pass, PASSWORD_BCRYPT);
 
-        $updateStmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+        $updateStmt = $conn->prepare("UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?");
         $updateStmt->bind_param("si", $new_hash, $user_id);
 
         if ($updateStmt->execute()) {

@@ -14,6 +14,9 @@ $offset = ($page - 1) * $limit;
 
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $role = isset($_GET['role']) ? trim($_GET['role']) : '';
+if ($role === 'user') {
+    $role = 'customer';
+}
 
 // Base Query
 $sql = "SELECT id, name, phone, email, role, created_at FROM users WHERE deleted_at IS NULL";
@@ -59,6 +62,9 @@ $result = $stmt->get_result();
 
 $users = [];
 while ($row = $result->fetch_assoc()) {
+    if (($row['role'] ?? '') === 'customer') {
+        $row['role'] = 'user';
+    }
     $users[] = $row;
 }
 $stmt->close();

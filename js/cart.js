@@ -118,6 +118,7 @@ window.updateCart = function() {
     const cartItems = document.getElementById('cart-items');
     const cartCount = document.getElementById('cart-count');
     const cartTotal = document.getElementById('cart-total');
+    const popup = document.getElementById('floating-cart-popup');
     if (!cartItems || !cartCount || !cartTotal) return;
 
     cartItems.innerHTML = '';
@@ -142,6 +143,8 @@ window.updateCart = function() {
     });
 
     cartCount.textContent = count;
+    if (popup) popup.classList.toggle('cart-empty', count === 0);
+
     let displayTotal  = total;
     let discountHtml  = '';
 
@@ -169,6 +172,7 @@ window.updateCart = function() {
 
 /** Toggle hiển thị popup giỏ hàng */
 window.toggleCart = function() {
+    updateCart();
     document.getElementById('floating-cart-popup')?.classList.toggle('hidden');
 };
 
@@ -265,13 +269,14 @@ window.checkout = function() {
     .then(data => {
         if (data.success) {
             showToast(data.message || 'Đặt hàng thành công!', 'success');
+            if (data.payUrl) {
+                showQrModal(data.payUrl, data.final_total || total, 'DH' + (data.order_id || ''));
+                return;
+            }
             window.cart = [];
             updateCart();
             toggleCart();
             saveCartToStorage();
-            if (data.payUrl) {
-                showQrModal(data.payUrl, total, 'DH' + (data.order_id || ''));
-            }
         } else {
             showToast(data.message || 'Thanh toán thất bại', 'error');
         }

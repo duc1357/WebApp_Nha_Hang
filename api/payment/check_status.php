@@ -4,7 +4,14 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/../../config/db.php';
 
+$user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 $order_id = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
+
+if (!$user_id) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
 
 if (!$order_id) {
     echo json_encode(['success' => false, 'message' => 'Missing order ID']);
@@ -13,8 +20,8 @@ if (!$order_id) {
 
 $conn = getDbConnection();
 
-$stmt = $conn->prepare("SELECT status FROM orders WHERE id = ?");
-$stmt->bind_param("i", $order_id);
+$stmt = $conn->prepare("SELECT status FROM orders WHERE id = ? AND user_id = ?");
+$stmt->bind_param("ii", $order_id, $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 

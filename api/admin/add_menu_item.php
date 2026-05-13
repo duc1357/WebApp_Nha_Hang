@@ -2,6 +2,7 @@
 header('Content-Type: application/json; charset=utf-8');
 // [2.3] Dùng auth_check_api.php chuẩn hóa (đã include constants.php + session check)
 require_once __DIR__ . '/auth_check_api.php';
+requireAdminPost();
 require_once ROOT_PATH . '/config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -79,7 +80,9 @@ $stmt->bind_param("ssis", $name, $description, $price, $photoUrl);
 if ($stmt->execute()) {
     echo json_encode(['success' => true, 'message' => 'Thêm món thành công', 'data' => ['id' => $conn->insert_id, 'photo' => $photoUrl]]);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Lỗi thêm món: ' . $stmt->error]);
+    error_log('[AdminAddMenuItem] ' . $stmt->error);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Không thể thêm món'], JSON_UNESCAPED_UNICODE);
 }
 
 $stmt->close();

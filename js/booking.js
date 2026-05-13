@@ -118,7 +118,7 @@ window.renderTableMap = function(allTables, bookedList) {
             const tableBox = document.createElement('div');
             tableBox.className  = `table-box ${statusClass}`;
             tableBox.dataset.id = t.id;
-            tableBox.innerHTML  = `<h3>${t.name}</h3><p>${t.capacity || '4'} người</p>`;
+            tableBox.innerHTML  = `<h3>${escapeHTML(t.name)}</h3><p>${escapeHTML(t.capacity || '4')} người</p>`;
 
             if (!isBooked) {
                 tableBox.onclick = () => onTableClick(tableBox, floorName, t.name, t.id);
@@ -167,8 +167,8 @@ window.updateBookingForm = function(floor, tableName, tableId) {
     const time    = document.getElementById('time')?.value;
     const summary = document.getElementById('selection-summary');
     if (summary) {
-        summary.innerHTML = `Đang chọn: <strong style="color:#e67e22">Bàn ${tableName} - Sảnh ${floor}</strong><br>
-                             Thời gian: ${time}, Ngày ${date}`;
+        summary.innerHTML = `Đang chọn: <strong style="color:#e67e22">Bàn ${escapeHTML(tableName)} - Sảnh ${escapeHTML(floor)}</strong><br>
+                             Thời gian: ${escapeHTML(time)}, Ngày ${escapeHTML(date)}`;
     }
     const btn = document.getElementById('btn-submit-booking');
     if (btn) { btn.disabled = false; btn.textContent = 'Xác Nhận Đặt Bàn'; }

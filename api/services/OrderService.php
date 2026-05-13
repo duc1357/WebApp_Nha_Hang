@@ -92,7 +92,7 @@ class OrderService {
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $types = str_repeat('i', count($ids));
 
-        $stmt = $conn->prepare("SELECT id, price FROM menu_items WHERE id IN ($placeholders) AND is_active = 1");
+        $stmt = $conn->prepare("SELECT id, price FROM menu_items WHERE id IN ($placeholders) AND is_active = 1 AND deleted_at IS NULL");
         $stmt->bind_param($types, ...$ids);
         $stmt->execute();
         $res = $stmt->get_result();
@@ -144,7 +144,9 @@ class OrderService {
 
         $voucher_code = strtoupper(trim($voucher_code));
         
-        $vSql = "SELECT * FROM vouchers WHERE code = ? AND is_active = 1";
+        $vSql = "SELECT code, discount_type, discount_value, min_order_value, expire_date, usage_limit, used_count
+                 FROM vouchers
+                 WHERE code = ? AND is_active = 1";
         $vStmt = $conn->prepare($vSql);
         $vStmt->bind_param("s", $voucher_code);
         $vStmt->execute();
@@ -173,11 +175,8 @@ class OrderService {
                 $final_total = $total_calculated - $discount_amount;
                 $applied_voucher = $voucher_code;
 
-                // Cập nhật số lần dùng voucher
-                $upV = $conn->prepare("UPDATE vouchers SET used_count = used_count + 1 WHERE id = ?");
-                $upV->bind_param("i", $vRow['id']);
-                $upV->execute();
-                $upV->close();
+                // Increment usage only after a confirmed payment/webhook.
+                // This prevents unpaid orders from exhausting voucher quota.
             }
         }
         $vStmt->close();
@@ -187,5 +186,60 @@ class OrderService {
             'final_total' => $final_total,
             'applied_voucher' => $applied_voucher
         ];
+    }
+
+    public static function markOrderPaid($conn, int $orderId, string $paymentMethod = 'bank_transfer'): array {
+        $stmt = $conn->prepare("SELECT id, total_amount, final_total, status, voucher_code FROM orders WHERE id = ? FOR UPDATE");
+        if (!$stmt) {
+            throw new RuntimeException('Prepare order lookup failed: ' . $conn->error);
+        }
+
+        $stmt->bind_param("i", $orderId);
+        $stmt->execute();
+        $order = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$order) {
+            return ['success' => false, 'message' => 'Order not found', 'already_paid' => false];
+        }
+
+        if ($order['status'] === 'paid') {
+            return ['success' => true, 'message' => 'Order already paid', 'already_paid' => true, 'order' => $order];
+        }
+
+        if (!empty($order['voucher_code'])) {
+            $voucherStmt = $conn->prepare(
+                "UPDATE vouchers
+                 SET used_count = used_count + 1
+                 WHERE code = ?
+                   AND is_active = 1
+                   AND expire_date >= NOW()
+                   AND used_count < usage_limit"
+            );
+            if (!$voucherStmt) {
+                throw new RuntimeException('Prepare voucher update failed: ' . $conn->error);
+            }
+
+            $voucherStmt->bind_param("s", $order['voucher_code']);
+            $voucherStmt->execute();
+            $voucherUpdated = $voucherStmt->affected_rows > 0;
+            $voucherStmt->close();
+
+            if (!$voucherUpdated) {
+                return ['success' => false, 'message' => 'Voucher is no longer valid', 'already_paid' => false, 'order' => $order];
+            }
+        }
+
+        $updateStmt = $conn->prepare("UPDATE orders SET status = 'paid', payment_method = ? WHERE id = ? AND status != 'paid'");
+        if (!$updateStmt) {
+            throw new RuntimeException('Prepare order update failed: ' . $conn->error);
+        }
+
+        $updateStmt->bind_param("si", $paymentMethod, $orderId);
+        $updateStmt->execute();
+        $updated = $updateStmt->affected_rows > 0;
+        $updateStmt->close();
+
+        return ['success' => $updated, 'message' => $updated ? 'Order updated' : 'Order was not updated', 'already_paid' => false, 'order' => $order];
     }
 }

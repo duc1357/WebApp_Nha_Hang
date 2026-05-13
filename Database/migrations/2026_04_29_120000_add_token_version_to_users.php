@@ -9,6 +9,11 @@
  * Chạy migration: thêm cột token_version vào users
  */
 function up(mysqli $conn): void {
+    $result = $conn->query("SHOW COLUMNS FROM `users` LIKE 'token_version'");
+    if ($result && $result->num_rows > 0) {
+        return;
+    }
+
     $conn->query("
         ALTER TABLE `users`
         ADD COLUMN `token_version` INT UNSIGNED NOT NULL DEFAULT 0

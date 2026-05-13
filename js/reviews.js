@@ -1,50 +1,47 @@
-// js/reviews.js – Đánh giá của khách hàng và hiển thị đánh giá nổi bật trang chủ
-// Phụ thuộc: utils.js (showToast, getCurrentUser)
+// js/reviews.js - Customer reviews and featured review rendering
+// Depends on utils.js (showToast, getCurrentUser)
 
 'use strict';
 
-/* =========================================
-   CUSTOMER REVIEW MODAL
-   ========================================= */
-
-/**
- * Mở modal viết đánh giá cho đơn hàng
- * @param {number} orderId
- */
 window.openReviewModal = function(orderId) {
-    document.getElementById('review-modal').style.display = 'flex';
-    document.getElementById('review-order-id').value      = orderId;
-    document.getElementById('review-comment').value       = '';
-    setRating(5); // Mặc định 5 sao
+    const modal = document.getElementById('review-modal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    document.getElementById('review-order-id').value = orderId;
+    document.getElementById('review-comment').value = '';
+    setRating(5);
 };
 
-/**
- * Cập nhật UI sao khi user chọn
- * @param {number} rating  Số sao (1-5)
- */
 window.setRating = function(rating) {
-    document.getElementById('review-rating').value = rating;
+    const input = document.getElementById('review-rating');
+    if (input) input.value = rating;
+
     document.querySelectorAll('.star-rating span').forEach(star => {
-        star.style.color = parseInt(star.dataset.value) <= rating ? '#f1c40f' : '#ddd';
+        star.style.color = parseInt(star.dataset.value, 10) <= rating ? '#f1c40f' : '#ddd';
     });
 };
 
-/** Gửi đánh giá lên server */
 window.submitReview = function() {
     const orderId = document.getElementById('review-order-id')?.value;
-    const rating  = document.getElementById('review-rating')?.value;
+    const rating = document.getElementById('review-rating')?.value;
     const comment = document.getElementById('review-comment')?.value;
-    const user    = getCurrentUser();
+    const user = getCurrentUser();
     if (!user) return;
 
-    const btn          = document.querySelector('#review-modal button:last-child');
+    const btn = document.querySelector('#review-modal button:last-child');
     const originalText = btn?.textContent;
-    if (btn) { btn.textContent = 'Đang gửi...'; btn.disabled = true; }
+    if (btn) {
+        btn.textContent = 'Đang gửi...';
+        btn.disabled = true;
+    }
 
     fetch('api/user/submit_review.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, order_id: orderId, rating, comment })
+        body: JSON.stringify({ order_id: orderId, rating, comment })
     })
     .then(res => res.json())
     .then(data => {
@@ -55,20 +52,18 @@ window.submitReview = function() {
             showToast(data.message, 'error');
         }
     })
-    .catch(err => { console.error(err); showToast('Lỗi kết nối', 'error'); })
+    .catch(err => {
+        console.error(err);
+        showToast('Lỗi kết nối', 'error');
+    })
     .finally(() => {
-        if (btn) { btn.textContent = originalText; btn.disabled = false; }
+        if (btn) {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
     });
 };
 
-/* =========================================
-   FEATURED REVIEWS (Trang chủ)
-   ========================================= */
-
-/**
- * Tải và render đánh giá nổi bật trên trang chủ.
- * Chỉ thực thi khi có element #featured-reviews-grid.
- */
 window.loadFeaturedReviews = function() {
     const grid = document.getElementById('featured-reviews-grid');
     if (!grid) return;
@@ -76,28 +71,52 @@ window.loadFeaturedReviews = function() {
     fetch('api/public/get_featured_reviews.php')
         .then(res => res.json())
         .then(data => {
-            if (data.reviews?.length > 0) {
-                grid.innerHTML = data.reviews.map(r => `
-                    <div class="review-card">
-                        <div class="review-rating">${'★'.repeat(parseInt(r.rating))}</div>
-                        <div class="review-comment">"${r.comment}"</div>
-                        <div class="review-author">
-                            <img src="photo/default-user.png" alt="user" onerror="this.src='photo/default-user.png'">
-                            <span>${r.name}</span>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                grid.innerHTML = '<p>Chưa có đánh giá nào.</p>';
+            grid.innerHTML = '';
+
+            if (!data.reviews?.length) {
+                const empty = document.createElement('p');
+                empty.textContent = 'Chưa có đánh giá nào.';
+                grid.appendChild(empty);
+                return;
             }
+
+            data.reviews.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'review-card';
+
+                const rating = document.createElement('div');
+                rating.className = 'review-rating';
+                rating.textContent = '★'.repeat(Math.max(0, Math.min(5, parseInt(r.rating, 10) || 0)));
+
+                const comment = document.createElement('div');
+                comment.className = 'review-comment';
+                comment.textContent = `"${r.comment || ''}"`;
+
+                const author = document.createElement('div');
+                author.className = 'review-author';
+
+                const img = document.createElement('img');
+                img.src = 'photo/default-user.png';
+                img.alt = 'Ảnh đại diện khách hàng';
+                img.onerror = () => { img.src = 'photo/default-user.png'; };
+
+                const name = document.createElement('span');
+                name.textContent = r.name || 'Khách hàng';
+
+                author.append(img, name);
+                card.append(rating, comment, author);
+                grid.appendChild(card);
+            });
         })
         .catch(err => {
             console.error('Lỗi tải đánh giá:', err);
-            grid.innerHTML = '<p>Không thể tải đánh giá.</p>';
+            grid.innerHTML = '';
+            const error = document.createElement('p');
+            error.textContent = 'Không thể tải đánh giá.';
+            grid.appendChild(error);
         });
 };
 
-// Tự load khi DOM sẵn sàng (chỉ chạy được trên trang có #featured-reviews-grid)
 document.addEventListener('DOMContentLoaded', () => {
     loadFeaturedReviews();
 });

@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '/../../api/services/OrderService.php';
 
 // [SECURITY FIX] Fail-Closed: Chặn tất cả request nếu token chưa cấu hình
 if (empty(SEPAY_WEBHOOK_TOKEN)) {
@@ -25,16 +26,27 @@ if (empty($authHeader) && function_exists('apache_request_headers')) {
 if ($authHeader !== 'Apikey ' . SEPAY_WEBHOOK_TOKEN) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized Webhook!']);
-    file_put_contents(dirname(__DIR__, 2) . '/logs/webhook_sepay.log', date('Y-m-d H:i:s') . " - UNAUTHORIZED ACCESS ATTEMPT | Auth: $authHeader\n", FILE_APPEND);
+    file_put_contents(dirname(__DIR__, 2) . '/logs/webhook_sepay.log', date('Y-m-d H:i:s') . " - UNAUTHORIZED ACCESS ATTEMPT\n", FILE_APPEND);
     exit;
 }
 
 // Đọc và log webhook data (chỉ log sau khi đã xác thực)
 $logFile = dirname(__DIR__, 2) . '/logs/webhook_sepay.log';
 $json = file_get_contents('php://input');
-file_put_contents($logFile, date('Y-m-d H:i:s') . " - " . $json . PHP_EOL, FILE_APPEND);
+// Đã bỏ log raw json ở đây
 
 $data = json_decode($json, true);
+
+if ($data) {
+    $logData = [
+        'gateway' => $data['gateway'] ?? 'unknown',
+        'accountNumber' => $data['accountNumber'] ?? '',
+        'subAccount' => $data['subAccount'] ?? '',
+        'transferAmount' => $data['transferAmount'] ?? 0,
+        'content' => $data['content'] ?? ''
+    ];
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " - WEBHOOK RECEIVED: " . json_encode($logData) . PHP_EOL, FILE_APPEND);
+}
 if (!$data) {
     echo json_encode(['success' => false, 'message' => 'Invalid JSON']);
     exit;
@@ -54,13 +66,50 @@ if (!$data) {
 
 $content = isset($data['content']) ? $data['content'] : '';
 $amount  = isset($data['transferAmount']) ? (int)$data['transferAmount'] : 0;
+$transferType = strtolower(trim((string)($data['transferType'] ?? '')));
+$accountNumber = trim((string)($data['accountNumber'] ?? ''));
+$subAccount = trim((string)($data['subAccount'] ?? ''));
+$gateway = trim((string)($data['gateway'] ?? ''));
+
+if ($transferType !== 'in') {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Unsupported transfer type']);
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " - REJECTED TRANSFER TYPE: {$transferType}\n", FILE_APPEND);
+    exit;
+}
+
+if (defined('SEPAY_VA_ACCOUNT') && SEPAY_VA_ACCOUNT !== '') {
+    $normalize = static fn(string $value): string => preg_replace('/[^A-Z0-9]/', '', strtoupper($value));
+    $expectedAccount = $normalize(SEPAY_VA_ACCOUNT);
+    $expectedWithoutPrefix = str_starts_with($expectedAccount, 'VQR') ? substr($expectedAccount, 3) : $expectedAccount;
+    $receivedAccountText = $normalize($accountNumber . ' ' . $subAccount . ' ' . $content);
+
+    $accountMatches = $expectedAccount !== '' && str_contains($receivedAccountText, $expectedAccount);
+    if (!$accountMatches && $expectedWithoutPrefix !== '' && $expectedWithoutPrefix !== $expectedAccount) {
+        $accountMatches = str_contains($receivedAccountText, $expectedWithoutPrefix);
+    }
+}
+
+if (defined('SEPAY_VA_ACCOUNT') && SEPAY_VA_ACCOUNT !== '' && !$accountMatches) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Unexpected account number']);
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " - REJECTED ACCOUNT: {$accountNumber} | SUB: {$subAccount} | CONTENT: {$content}\n", FILE_APPEND);
+    exit;
+}
+
+if (defined('SEPAY_BANK_NAME') && SEPAY_BANK_NAME !== '' && $gateway !== '' && strcasecmp($gateway, SEPAY_BANK_NAME) !== 0) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Unexpected gateway']);
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " - REJECTED GATEWAY: {$gateway}\n", FILE_APPEND);
+    exit;
+}
 
 // Extract Order ID or Booking ID from content
 if (preg_match('/DH(\d+)/i', $content, $matches)) {
     $order_id = $matches[1];
     $conn = getDbConnection();
 
-    $stmt = $conn->prepare("SELECT id, total_amount, final_total, status FROM orders WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, total_amount, final_total, status, voucher_code FROM orders WHERE id = ?");
     $stmt->bind_param("i", $order_id);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -81,17 +130,18 @@ if (preg_match('/DH(\d+)/i', $content, $matches)) {
              exit;
         }
 
-        $updateStmt = $conn->prepare("UPDATE orders SET status = 'paid', payment_method = 'bank_transfer' WHERE id = ?");
-        $updateStmt->bind_param("i", $order_id);
-        
-        if ($updateStmt->execute()) {
+        $conn->begin_transaction();
+        $markResult = OrderService::markOrderPaid($conn, (int)$order_id, 'bank_transfer');
+
+        if ($markResult['success']) {
+            $conn->commit();
             http_response_code(200);
-            echo json_encode(['success' => true, 'message' => 'Order updated']);
+            echo json_encode(['success' => true, 'message' => $markResult['message']]);
         } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Update failed']);
+            $conn->rollback();
+            http_response_code($markResult['message'] === 'Voucher is no longer valid' ? 409 : 500);
+            echo json_encode(['success' => false, 'message' => $markResult['message']]);
         }
-        $updateStmt->close();
     } else {
         http_response_code(200); 
         echo json_encode(['success' => false, 'message' => 'Order not found']);
@@ -133,8 +183,9 @@ if (preg_match('/DH(\d+)/i', $content, $matches)) {
             http_response_code(200);
             echo json_encode(['success' => true, 'message' => 'Booking updated']);
         } else {
+            error_log('[WebhookBooking] Update failed: ' . $conn->error);
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Update failed: ' . $conn->error]);
+            echo json_encode(['success' => false, 'message' => 'Update failed']);
         }
         $updateStmt->close();
     } else {

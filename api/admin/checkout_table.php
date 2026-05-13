@@ -1,67 +1,59 @@
 <?php
 // api/admin/checkout_table.php
 require_once __DIR__ . '/auth_check_api.php';
+requireAdminPost();
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
-$conn = getDbConnection();
+require_once __DIR__ . '/../../api/services/OrderService.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
-
 $table_id = isset($data['table_id']) ? (int)$data['table_id'] : 0;
 $payment_method = isset($data['payment_method']) ? trim($data['payment_method']) : 'cash';
+$date = isset($data['date']) ? $data['date'] : date('Y-m-d');
 
-if ($table_id <= 0) {
-    echo json_encode(['success' => false, 'message' => 'Lỗi ID bàn.']);
+if ($table_id <= 0 || !in_array($payment_method, ['cash', 'bank_transfer'], true)) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'Dữ liệu thanh toán không hợp lệ'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// 1. Tìm order pending của bàn
-$sql = "SELECT id FROM orders WHERE table_id = ? AND status = 'pending' ORDER BY id DESC LIMIT 1";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $table_id);
-$stmt->execute();
-$resOrder = $stmt->get_result();
+$conn = getDbConnection();
+$conn->begin_transaction();
 
-if ($resOrder->num_rows === 0) {
-    // Không có hoá đơn pending, nhưng vẫn trả bàn
+try {
+    $stmt = $conn->prepare("SELECT id FROM orders WHERE table_id = ? AND status = 'pending' ORDER BY id DESC LIMIT 1 FOR UPDATE");
+    $stmt->bind_param('i', $table_id);
+    $stmt->execute();
+    $resOrder = $stmt->get_result();
+
+    if ($resOrder->num_rows > 0) {
+        $order = $resOrder->fetch_assoc();
+        $order_id = (int)$order['id'];
+        $markResult = OrderService::markOrderPaid($conn, $order_id, $payment_method);
+        if (!$markResult['success']) {
+            throw new RuntimeException($markResult['message']);
+        }
+    }
+    $stmt->close();
+
     $upTable = $conn->prepare("UPDATE tables SET status = 'available' WHERE id = ?");
-    $upTable->bind_param("i", $table_id);
+    $upTable->bind_param('i', $table_id);
     $upTable->execute();
     $upTable->close();
 
-    echo json_encode(['success' => true, 'message' => 'Bàn rỗng đã được trả.']);
-    exit;
+    $completeB = $conn->prepare("UPDATE bookings SET status = 'completed' WHERE table_id = ? AND date = ? AND status = 'confirmed'");
+    $completeB->bind_param('is', $table_id, $date);
+    $completeB->execute();
+    $completeB->close();
+
+    $conn->commit();
+    echo json_encode(['success' => true, 'message' => 'Thanh toán và trả bàn thành công'], JSON_UNESCAPED_UNICODE);
+} catch (Throwable $e) {
+    $conn->rollback();
+    error_log('[AdminCheckoutTable] ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Không thể thanh toán bàn'], JSON_UNESCAPED_UNICODE);
 }
 
-$order = $resOrder->fetch_assoc();
-$order_id = $order['id'];
-$stmt->close();
-
-// 2. Chuyển order status = 'paid', update payment_method
-$updOrder = $conn->prepare("UPDATE orders SET status = 'paid', payment_method = ? WHERE id = ?");
-$updOrder->bind_param("si", $payment_method, $order_id);
-if (!$updOrder->execute()) {
-    echo json_encode(['success' => false, 'message' => 'Lỗi cập nhật hoá đơn: ' . $updOrder->error]);
-    exit;
-}
-$updOrder->close();
-
-// 3. Trả bàn về 'available'
-$upTable = $conn->prepare("UPDATE tables SET status = 'available' WHERE id = ?");
-$upTable->bind_param("i", $table_id);
-if (!$upTable->execute()) {
-    echo json_encode(['success' => false, 'message' => 'Lỗi trả bàn: ' . $upTable->error]);
-    exit;
-}
-$upTable->close();
-
-$date = isset($data['date']) ? $data['date'] : date('Y-m-d');
-$completeB = $conn->prepare("UPDATE bookings SET status = 'completed' WHERE table_id = ? AND date = ? AND status = 'confirmed'");
-$completeB->bind_param("is", $table_id, $date);
-$completeB->execute();
-$completeB->close();
-
-echo json_encode(['success' => true, 'message' => 'Thanh toán & Trả bàn thành công!']);
 $conn->close();
-?>

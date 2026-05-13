@@ -13,6 +13,29 @@
 </div>
 
 <script>
+    window.adminCsrfToken = '';
+    window.adminCsrfReady = fetch('../api/auth/get_csrf.php')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) window.adminCsrfToken = data.csrf_token;
+        })
+        .catch(err => console.error('Admin CSRF init failed:', err));
+
+    const adminOriginalFetch = window.fetch.bind(window);
+    window.fetch = async function(url, options = {}) {
+        const method = (options.method || 'GET').toUpperCase();
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+            if (!window.adminCsrfToken && window.adminCsrfReady) await window.adminCsrfReady;
+            options.headers = options.headers || {};
+            if (options.headers instanceof Headers) {
+                options.headers.set('X-CSRF-Token', window.adminCsrfToken);
+            } else {
+                options.headers['X-CSRF-Token'] = window.adminCsrfToken;
+            }
+        }
+        return adminOriginalFetch(url, options);
+    };
+
     // Global Poller for Real-time Notifications
     (function() {
         let lastOrderId = 0;

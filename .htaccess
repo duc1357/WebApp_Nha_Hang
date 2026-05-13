@@ -50,6 +50,9 @@ RewriteRule ^logs(/|$) - [F,L]
     Deny from all
 </FilesMatch>
 
+# Các script setup/migration đã chuyển vào Database/setup_scripts/.
+# Thư mục Database/ bị chặn truy cập web ở trên.
+
 # Chặn file .gitignore và git files
 <FilesMatch "^\.git">
     Order allow,deny

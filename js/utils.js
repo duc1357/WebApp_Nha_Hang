@@ -15,7 +15,7 @@ window._originalFetch = window.fetch;
 /* =========================================
    CSRF INIT & FETCH INTERCEPTOR
    ========================================= */
-(async function initCsrf() {
+window.csrfReady = (async function initCsrf() {
     try {
         const res  = await window._originalFetch('api/auth/get_csrf.php');
         const data = await res.json();
@@ -31,6 +31,9 @@ window._originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
     const mutatingMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
     if (options.method && mutatingMethods.includes(options.method.toUpperCase())) {
+        if (!window.csrfToken && window.csrfReady) {
+            await window.csrfReady;
+        }
         options.headers = options.headers || {};
         if (options.headers instanceof Headers) {
             options.headers.append('X-CSRF-Token', window.csrfToken);
@@ -44,6 +47,21 @@ window.fetch = async function(url, options = {}) {
 /* =========================================
    FORMAT & VALIDATION HELPERS
    ========================================= */
+
+/**
+ * Sanitize chuỗi để tránh XSS
+ * @param {string} str
+ * @returns {string}
+ */
+window.escapeHTML = function(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+};
 
 /**
  * Định dạng số tiền theo chuẩn Việt Nam
@@ -60,7 +78,7 @@ window.formatCurrency = function(amount) {
  * @returns {boolean}
  */
 window.validatePhone = function(phone) {
-    return /^(0[3|5|7|8|9])+([0-9]{8})$/.test(phone);
+    return /^0[35789][0-9]{8}$/.test(phone);
 };
 
 /**

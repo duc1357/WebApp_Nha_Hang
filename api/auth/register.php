@@ -75,7 +75,8 @@ try {
         if ($conn->errno === 1062) {
             throw new Exception("Số điện thoại hoặc Email đã tồn tại.");
         } else {
-            throw new Exception("Lỗi hệ thống: " . $stmt->error);
+            error_log('[Register] Insert failed: ' . $stmt->error);
+            throw new Exception("Lỗi hệ thống. Vui lòng thử lại sau.");
         }
     }
 

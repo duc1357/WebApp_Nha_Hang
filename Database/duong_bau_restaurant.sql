@@ -50,36 +50,7 @@ CREATE TABLE `bookings` (
 -- Dumping data for table `bookings`
 --
 
-INSERT INTO `bookings` (`id`, `table_id`, `name`, `phone`, `date`, `time`, `guests`, `status`, `created_at`, `floor`, `table_number`, `user_id`, `has_preorder`, `total_amount`, `deposit_amount`, `payment_status`) VALUES
-(1, 1, 'Hoai Nam', '0799412960', '2026-01-17', '01:00:00', 2, 'confirmed', '2026-01-15 17:57:38', 'Sảnh Tulip', 0, NULL, 0, 0.00, 0.00, 'pending'),
-(2, 13, 'Hoai Nam', '0799412960', '2026-01-18', '02:00:00', 2, 'confirmed', '2026-01-15 18:14:08', 'Sảnh Rose', 13, NULL, 0, 0.00, 0.00, 'pending'),
-(3, 14, 'Hoai Nam', '0799412960', '2026-01-18', '13:16:00', 3, 'confirmed', '2026-01-15 18:14:32', 'Sảnh Rose', 14, NULL, 0, 0.00, 0.00, 'pending'),
-(4, 14, 'Hoai Nam', '0941123354', '2026-01-25', '02:00:00', 2, 'confirmed', '2026-01-15 18:17:13', 'Sảnh Rose', 14, NULL, 0, 0.00, 0.00, 'pending'),
-(5, 14, 'Hoai Nam', '0916952202', '2026-01-18', '02:00:00', 2, 'confirmed', '2026-01-15 18:20:49', 'Sảnh Rose', 14, NULL, 0, 0.00, 0.00, 'pending'),
-(6, 15, 'Hoai Nam', '0916952202', '2026-01-18', '02:00:00', 2, 'confirmed', '2026-01-15 18:36:47', 'Sảnh Rose', 15, NULL, 0, 0.00, 0.00, 'pending'),
-(7, 12, 'Lê Minh Đức', '0799412960', '2026-01-17', '03:00:00', 2, 'confirmed', '2026-01-15 19:51:19', 'Sảnh Rose', 12, 3, 0, 0.00, 0.00, 'pending'),
-(8, 12, 'Hoai Nam', '0916952202', '2026-01-18', '03:00:00', 2, 'confirmed', '2026-01-15 19:52:07', 'Sảnh Rose', 12, NULL, 0, 0.00, 0.00, 'pending'),
-(9, 12, 'Lê Minh Đức', '0799412960', '2026-01-16', '04:00:00', 2, 'confirmed', '2026-01-15 20:35:42', 'Sảnh Rose', 12, 3, 0, 0.00, 0.00, 'pending'),
-(10, 13, 'Lê Minh Đức', '0799412960', '2026-01-16', '04:00:00', 2, 'confirmed', '2026-01-15 20:48:27', 'Sảnh Rose', 13, 3, 0, 0.00, 0.00, 'pending'),
-(11, 11, 'MINH DUC', '0916952202', '2026-01-16', '11:00:00', 2, 'pending', '2026-01-16 03:48:54', 'Sảnh Rose', 11, NULL, 0, 0.00, 0.00, 'pending'),
-(12, 13, 'minh duc', '0941123354', '2026-01-19', '01:00:00', 2, 'pending', '2026-01-18 17:42:38', 'Sảnh Rose', 13, 4, 0, 0.00, 0.00, 'pending'),
-(13, 13, 'minh duc', '0941123354', '2026-01-20', '00:00:00', 2, 'pending', '2026-01-19 16:03:49', 'Sảnh Rose', 13, NULL, 0, 0.00, 0.00, 'pending'),
-(14, 13, 'Lê Minh Đức', '0799412960', '2026-01-27', '15:00:00', 2, 'pending', '2026-01-27 07:26:45', 'Sảnh Rose', 13, 3, 0, 0.00, 0.00, 'pending'),
-(15, 12, 'Lê Minh Đức', '0799412960', '2026-01-31', '23:00:00', 2, 'confirmed', '2026-01-31 15:20:35', NULL, NULL, NULL, 0, 0.00, 0.00, 'pending'),
-(16, 13, 'Lê Minh Đức', '0799412960', '2026-01-31', '23:00:00', 2, 'confirmed', '2026-01-31 15:23:07', NULL, NULL, NULL, 0, 0.00, 0.00, 'pending'),
-(17, 13, 'Lê Minh Đức', '0799412960', '2026-01-31', '23:00:00', 2, 'confirmed', '2026-01-31 15:23:20', NULL, NULL, NULL, 0, 0.00, 0.00, 'pending'),
-(18, 14, 'Lê Minh Đức', '0799412960', '2026-01-31', '23:00:00', 2, 'pending', '2026-01-31 15:24:29', NULL, NULL, NULL, 0, 0.00, 0.00, 'pending'),
-(19, 16, 'Lê Minh Đức', '0799412960', '2026-03-17', '00:00:00', 2, 'confirmed', '2026-03-16 15:23:40', NULL, NULL, NULL, 0, 0.00, 0.00, 'pending'),
-(20, 15, 'Lê Minh Đức', '0799412960', '2026-03-17', '01:00:00', 2, 'confirmed', '2026-03-16 15:35:47', NULL, NULL, NULL, 0, 0.00, 0.00, 'pending'),
-(21, 1, 'Test User', '0123456789', '2026-03-17', '19:00:00', 2, 'confirmed', '2026-03-16 15:42:09', 'rose', 1, 4, 0, 0.00, 0.00, 'pending'),
-(22, 1, 'Test User', '0123456789', '2026-03-17', '19:00:00', 2, 'confirmed', '2026-03-16 15:42:14', 'rose', 1, 4, 0, 0.00, 0.00, 'pending'),
-(23, 16, 'Lê Minh Đức', '0799412960', '2026-03-19', '23:00:00', 2, 'confirmed', '2026-03-16 15:51:49', NULL, NULL, NULL, 0, 0.00, 0.00, 'pending'),
-(24, 16, 'Lê Minh Đức', '0799412960', '2026-03-19', '19:00:00', 2, 'confirmed', '2026-03-16 15:54:25', 'Sảnh Rose', 16, 1, 0, 0.00, 0.00, 'pending'),
-(25, 16, 'Lê Minh Đức', '0799412960', '2026-04-05', '23:00:00', 2, 'confirmed', '2026-03-16 15:55:35', 'Sảnh Rose', 16, 1, 0, 0.00, 0.00, 'pending'),
-(26, 16, 'Lê Minh Đức', '0799412960', '2026-04-03', '00:00:00', 2, 'cancelled', '2026-03-16 16:07:35', 'Sảnh Rose', 16, 3, 0, 0.00, 0.00, 'pending'),
-(30, 12, 'Lê Minh Đức', '0799412960', '2026-03-26', '14:00:00', 2, 'confirmed', '2026-03-26 06:53:17', 'Sảnh Rose', 12, 3, 0, 0.00, 0.00, 'pending'),
-(31, 13, 'Lê Minh Đức', '0799412960', '2026-03-26', '22:00:00', 2, 'awaiting_payment', '2026-03-26 08:39:39', 'Sảnh Rose', 13, 1, 1, 7000.00, 2100.00, 'pending'),
-(32, 14, 'Lê Minh Đức', '0799412960', '2026-03-26', '22:00:00', 2, 'confirmed', '2026-03-26 08:42:25', 'Sảnh Rose', 14, 1, 1, 7000.00, 2100.00, 'partial');
+-- Seed data for table `bookings` removed for privacy.
 
 -- --------------------------------------------------------
 
@@ -99,9 +70,7 @@ CREATE TABLE `booking_items` (
 -- Dumping data for table `booking_items`
 --
 
-INSERT INTO `booking_items` (`id`, `booking_id`, `menu_item_id`, `quantity`, `unit_price`) VALUES
-(1, 31, 26, 7, 1000.00),
-(2, 32, 26, 7, 1000.00);
+-- Seed data for table `booking_items` removed for privacy.
 
 -- --------------------------------------------------------
 
@@ -191,48 +160,7 @@ CREATE TABLE `orders` (
 -- Dumping data for table `orders`
 --
 
-INSERT INTO `orders` (`id`, `user_id`, `total_amount`, `discount_amount`, `final_total`, `payment_method`, `address`, `table_id`, `note`, `voucher_code`, `status`, `created_at`) VALUES
-(1, NULL, 80000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-15 18:17:32'),
-(2, 3, 70000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-15 19:51:08'),
-(3, 3, 70000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-15 20:08:16'),
-(4, NULL, 65000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-16 03:43:03'),
-(5, 3, 65000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-16 03:43:09'),
-(6, NULL, 260000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-16 03:48:37'),
-(7, 4, 260000, 0.00, 0.00, 'bank_transfer', NULL, NULL, NULL, NULL, 'pending', '2026-01-18 17:03:51'),
-(8, 4, 65000, 0.00, 0.00, 'bank_transfer', NULL, NULL, NULL, NULL, 'pending', '2026-01-18 17:04:09'),
-(9, 4, 60000, 0.00, 0.00, 'bank_transfer', NULL, NULL, NULL, NULL, 'pending', '2026-01-18 17:06:28'),
-(10, 4, 70000, 0.00, 0.00, 'bank_transfer', NULL, NULL, NULL, NULL, 'pending', '2026-01-18 17:21:51'),
-(11, 4, 70000, 0.00, 0.00, 'bank_transfer', NULL, NULL, NULL, NULL, 'pending', '2026-01-18 17:34:39'),
-(12, 4, 30000, 0.00, 0.00, 'bank_transfer', NULL, NULL, NULL, NULL, 'pending', '2026-01-18 17:34:50'),
-(13, 4, 30000, 0.00, 0.00, 'bank_transfer', NULL, NULL, NULL, NULL, 'paid', '2026-01-18 17:40:11'),
-(14, 4, 65000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-18 17:40:53'),
-(15, 4, 65000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-18 17:49:12'),
-(16, 4, 65000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-19 16:01:56'),
-(17, 4, 30000, 0.00, 0.00, 'bank_transfer', NULL, NULL, NULL, NULL, 'paid', '2026-01-19 16:02:03'),
-(18, 4, 30000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-19 16:02:28'),
-(19, 1, 30000, 0.00, 0.00, 'cash', NULL, NULL, NULL, NULL, 'paid', '2026-01-27 07:07:56'),
-(20, 1, 30000, 0.00, 30000.00, 'cash', NULL, NULL, NULL, '', 'paid', '2026-01-27 07:12:22'),
-(21, 3, 30000, 0.00, 30000.00, 'cash', NULL, NULL, NULL, '', 'paid', '2026-01-27 07:13:41'),
-(22, 1, 30000, 27000.00, 3000.00, 'bank_transfer', NULL, NULL, NULL, 'SALE80', 'paid', '2026-01-27 07:33:37'),
-(23, 1, 30000, 27000.00, 3000.00, 'bank_transfer', NULL, NULL, NULL, 'SALE80', 'paid', '2026-01-27 07:38:36'),
-(24, 1, 30000, 0.00, 30000.00, 'cash', NULL, NULL, NULL, '', 'paid', '2026-01-27 10:58:34'),
-(25, 1, 60000, 0.00, 60000.00, 'cash', NULL, NULL, NULL, '', 'paid', '2026-01-27 11:10:04'),
-(26, 3, 30000, 0.00, 30000.00, 'cash', NULL, NULL, NULL, '', 'paid', '2026-01-27 11:11:40'),
-(27, 3, 30000, 0.00, 30000.00, 'cash', NULL, NULL, NULL, '', 'paid', '2026-01-27 11:14:20'),
-(28, 3, 65000, 0.00, 65000.00, 'cash', NULL, NULL, NULL, '', 'paid', '2026-01-27 11:14:41'),
-(29, 1, 35000, 0.00, 35000.00, 'cash', '', 'R2', '', '', 'paid', '2026-01-31 14:20:05'),
-(30, 1, 70000, 0.00, 70000.00, 'cash', '', 'R2', '', '', 'paid', '2026-01-31 15:25:18'),
-(31, 3, 1000, 0.00, 1000.00, 'bank_transfer', '', 'r4', '', '', 'pending', '2026-03-16 16:58:07'),
-(32, 3, 2000, 0.00, 2000.00, 'bank_transfer', '', 'r4', '', '', 'paid', '2026-03-16 16:58:37'),
-(33, NULL, 0, 0.00, 0.00, 'cash', NULL, '12', '', NULL, 'paid', '2026-03-16 18:39:25'),
-(34, NULL, 0, 0.00, 0.00, 'cash', NULL, '14', '', NULL, 'paid', '2026-03-16 18:39:29'),
-(35, 3, 1000, 0.00, 1000.00, 'cash', '', 'R2', '', '', 'pending', '2026-03-26 06:54:03'),
-(36, 3, 1000, 0.00, 1000.00, 'bank_transfer', '', 'R2', '', '', 'pending', '2026-03-26 06:54:19'),
-(37, 3, 2000, 0.00, 2000.00, 'bank_transfer', '', 'R2', '', '', 'pending', '2026-03-26 06:54:47'),
-(38, 3, 2000, 0.00, 2000.00, 'bank_transfer', '', 'R2', '', '', 'paid', '2026-03-26 06:58:57'),
-(39, 3, 2000, 0.00, 2000.00, 'bank_transfer', '', 'R2', '', '', 'paid', '2026-03-26 07:06:55'),
-(40, NULL, 0, 0.00, 0.00, 'cash', NULL, '20', '', NULL, 'paid', '2026-03-26 07:08:22'),
-(41, NULL, 0, 0.00, 0.00, 'cash', NULL, '20', '', NULL, 'cancelled', '2026-03-26 07:09:32');
+-- Seed data for table `orders` removed for privacy.
 
 -- --------------------------------------------------------
 
@@ -252,45 +180,7 @@ CREATE TABLE `order_items` (
 -- Dumping data for table `order_items`
 --
 
-INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `quantity`, `unit_price`) VALUES
-(1, 1, 23, 1, 80000),
-(2, 2, 18, 1, 70000),
-(3, 3, 18, 1, 70000),
-(4, 4, 3, 1, 65000),
-(5, 5, 3, 1, 65000),
-(6, 6, 3, 4, 65000),
-(7, 7, 3, 4, 65000),
-(8, 8, 3, 1, 65000),
-(9, 9, 4, 1, 60000),
-(10, 10, 7, 1, 70000),
-(11, 11, 7, 1, 70000),
-(12, 12, 20, 1, 30000),
-(13, 13, 20, 1, 30000),
-(14, 14, 3, 1, 65000),
-(15, 15, 3, 1, 65000),
-(16, 16, 3, 1, 65000),
-(17, 17, 20, 1, 30000),
-(18, 18, 20, 1, 30000),
-(19, 19, 20, 1, 30000),
-(20, 20, 20, 1, 30000),
-(21, 21, 20, 1, 30000),
-(22, 22, 20, 1, 30000),
-(23, 23, 20, 1, 30000),
-(24, 24, 20, 1, 30000),
-(25, 25, 20, 2, 30000),
-(26, 26, 20, 1, 30000),
-(27, 27, 20, 1, 30000),
-(28, 28, 20, 1, 30000),
-(29, 28, 21, 1, 35000),
-(30, 29, 21, 1, 35000),
-(31, 30, 21, 2, 35000),
-(32, 31, 26, 1, 1000),
-(33, 32, 26, 2, 1000),
-(34, 35, 26, 1, 1000),
-(35, 36, 26, 1, 1000),
-(36, 37, 26, 2, 1000),
-(37, 38, 26, 2, 1000),
-(38, 39, 26, 2, 1000);
+-- Seed data for table `order_items` removed for privacy.
 
 -- --------------------------------------------------------
 
@@ -364,17 +254,16 @@ CREATE TABLE `users` (
   `otp_expiry` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `avatar` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `deleted_at` datetime DEFAULT NULL
+  `deleted_at` datetime DEFAULT NULL,
+  `token_version` int unsigned NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `phone`, `email`, `password`, `role`, `otp_code`, `otp_expiry`, `created_at`, `avatar`, `deleted_at`) VALUES
-(1, 'Admin', '0123456789', 'admin@example.com', '$2y$10$a7J7SGjxm0thAUYV4t1ugOsnGRujUHjfpVRNBJJajHrzGy4c.IyeW', 'admin', NULL, NULL, '2025-11-21 12:38:21', NULL, NULL),
-(3, 'Lê Minh Đức', '0799412960', 'leminhducphale@gmail.com', '$2y$10$jAOScwjRFcYXRNDnM50UcezJoO3AGHljmGhzIk2vNC1w35007ExXm', 'customer', NULL, NULL, '2026-01-15 19:25:01', NULL, NULL),
-(4, 'minh duc', '0941123354', 'leminhducphale1@gmail.com', '$2y$10$4tyZoqW8uzr3jqAiYdBbte/sC2pEfmDtNdLWWyMEhQU8DIrXUyXqu', 'customer', NULL, NULL, '2026-01-16 03:52:24', 'photo/avatars/ua_4_1768839398.png', NULL);
+INSERT INTO `users` (`id`, `name`, `phone`, `email`, `password`, `role`, `otp_code`, `otp_expiry`, `created_at`, `avatar`, `deleted_at`, `token_version`) VALUES
+(1, 'Demo Admin', '0900000000', 'admin.demo@example.test', '$2y$10$eIqKYLYyWtk0Atw4YfvTi.WKBcoKynKGsROn8Y4l4rjc7OZ6CndBK', 'admin', NULL, NULL, '2025-11-21 12:38:21', NULL, NULL, 0);
 
 -- --------------------------------------------------------
 

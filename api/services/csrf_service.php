@@ -54,8 +54,8 @@ class CsrfService {
         if (!self::verifyToken($token)) {
             $allHeaders = function_exists('getallheaders') ? getallheaders() : [];
             error_log("CSRF Fail | IP: " . ($_SERVER['REMOTE_ADDR'] ?? '-')
-                . " | Session token: " . ($_SESSION['csrf_token'] ?? 'NULL')
-                . " | Received: " . $token
+                . " | Has session token: " . (isset($_SESSION['csrf_token']) ? 'yes' : 'no')
+                . " | Has received token: " . (!empty($token) ? 'yes' : 'no')
                 . " | SERVER: " . json_encode(array_keys($_SERVER))
                 . " | HEADERS: " . json_encode($allHeaders));
             

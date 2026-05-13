@@ -5,7 +5,9 @@ require_once __DIR__ . '/auth_check_api.php'; // [2.3] Standardized
 require_once ROOT_PATH . '/config/db.php';
 
 $conn = getDbConnection();
-$sql = "SELECT * FROM vouchers ORDER BY created_at DESC";
+$sql = "SELECT id, code, description, discount_type, discount_value, min_order_value, expire_date, usage_limit, used_count, is_active, created_at
+        FROM vouchers
+        ORDER BY created_at DESC";
 $result = $conn->query($sql);
 
 $vouchers = [];

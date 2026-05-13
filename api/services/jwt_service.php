@@ -132,9 +132,11 @@ class JwtService
      */
     public static function getBearerToken(): ?string
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION']
-            ?? apache_request_headers()['Authorization']
-            ?? null;
+        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+        if (!$header && function_exists('apache_request_headers')) {
+            $headers = apache_request_headers();
+            $header = $headers['Authorization'] ?? null;
+        }
 
         if ($header && preg_match('/^Bearer\s+(.+)$/i', $header, $matches)) {
             return $matches[1];
@@ -169,6 +171,26 @@ class JwtService
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Không đủ quyền truy cập'], JSON_UNESCAPED_UNICODE);
             exit;
+        }
+
+        // Kiểm tra token_version nếu có user_id
+        if (isset($payload['user_id'])) {
+            require_once dirname(__DIR__, 2) . '/config/db.php';
+            $conn = getDbConnection();
+            $stmt = $conn->prepare("SELECT token_version FROM users WHERE id = ?");
+            $stmt->bind_param("i", $payload['user_id']);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $user = $res->fetch_assoc();
+            $stmt->close();
+            $conn->close();
+
+            $tokenVersion = $payload['token_version'] ?? 1;
+            if (!$user || $user['token_version'] > $tokenVersion) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Token đã bị thu hồi. Vui lòng đăng nhập lại.'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
         }
 
         return $payload;

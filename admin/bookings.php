@@ -197,12 +197,22 @@ require_once 'auth_check.php';
             fetch('../api/auth/logout.php', { method: 'POST' }).then(() => window.location.href = '../index.html');
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         let currentPage = 1;
         
         // --- POS GLOBAL STATE ---
         let globalMenu = [];
         let currentTableId = null;
         let currentTableName = '';
+        let currentBookingId = null;
         let posCart = []; // Array of {id, name, price, quantity}
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -262,18 +272,24 @@ require_once 'auth_check.php';
                             const statusClass = isOccupied ? 'occupied' : 'available';
                             const statusText = isOccupied ? 'Đang phục vụ' : 'Trống';
                             const details = t.booking_info ? 
-                                `<br><span style="font-size:11px; color:#555;">Hẹn: ${t.booking_info.name} (${t.booking_info.time})</span>` : '';
+                                `<br><span style="font-size:11px; color:#555;">Hẹn: ${escapeHtml(t.booking_info.name)} (${escapeHtml(t.booking_info.time)})</span>` : '';
+                            const tableId = escapeHtml(t.id);
+                            const tableName = escapeHtml(t.name);
+                            const tableStatus = escapeHtml(t.status);
                             
                             gridHtml += `
-                                <div class="table-item ${statusClass}" title="${statusText}" onclick="handleTableClick('${t.id}', '${t.name}', '${t.status}')">
-                                    <div class="table-name">${t.name}</div>
-                                    <div class="table-cap">${t.capacity} ghế</div>
+                                <div class="table-item ${statusClass}" title="${statusText}" data-id="${tableId}" data-name="${tableName}" data-status="${tableStatus}">
+                                    <div class="table-name">${tableName}</div>
+                                    <div class="table-cap">${escapeHtml(t.capacity)} ghế</div>
                                     ${details}
                                 </div>
                             `;
                         });
                         gridHtml += '</div>';
-                        floorDiv.innerHTML = `<div class="floor-title">${floorName}</div>${gridHtml}`;
+                        floorDiv.innerHTML = `<div class="floor-title">${escapeHtml(floorName)}</div>${gridHtml}`;
+                        floorDiv.querySelectorAll('.table-item').forEach(tableEl => {
+                            tableEl.addEventListener('click', () => handleTableClick(tableEl.dataset.id, tableEl.dataset.name, tableEl.dataset.status));
+                        });
                         container.appendChild(floorDiv);
                     }
                 }).catch(console.error);
@@ -313,6 +329,7 @@ require_once 'auth_check.php';
         function openPosModal(id, name) {
             currentTableId = id;
             currentTableName = name;
+            currentBookingId = null;
             posCart = [];
             document.getElementById('posTableTitle').textContent = `Order - Bàn ${name}`;
             document.getElementById('posSearch').value = '';
@@ -327,6 +344,7 @@ require_once 'auth_check.php';
                 .then(res => res.json())
                 .then(data => {
                     if (data.success && data.order && data.order.items) {
+                        currentBookingId = data.order.booking_id ? parseInt(data.order.booking_id) : null;
                         // Map items to cart
                         posCart = data.order.items.map(i => ({
                             id: parseInt(i.menu_item_id),
@@ -351,7 +369,7 @@ require_once 'auth_check.php';
                     const div = document.createElement('div');
                     div.className = 'menu-item';
                     div.innerHTML = `
-                        <div class="menu-item-name">${item.name}</div>
+                        <div class="menu-item-name">${escapeHtml(item.name)}</div>
                         <div class="menu-item-price">${formatCurrency(item.price)}</div>
                     `;
                     div.onclick = () => addToCart(item);
@@ -406,18 +424,20 @@ require_once 'auth_check.php';
                 div.className = 'cart-item';
                 div.innerHTML = `
                     <div class="cart-item-header">
-                        <span>${item.name}</span>
+                        <span>${escapeHtml(item.name)}</span>
                         <span style="color:var(--primary);">${formatCurrency(itemTotal)}</span>
                     </div>
                     <div class="cart-item-actions">
                         <span style="font-size:13px; color:#777;">Đơn giá: ${formatCurrency(item.price)}</span>
                         <div class="cart-qty">
-                            <button class="btn-qty" onclick="chgQty(${item.id}, -1)">-</button>
+                            <button type="button" class="btn-qty js-qty-minus">-</button>
                             <span>${item.quantity}</span>
-                            <button class="btn-qty" onclick="chgQty(${item.id}, 1)">+</button>
+                            <button type="button" class="btn-qty js-qty-plus">+</button>
                         </div>
                     </div>
                 `;
+                div.querySelector('.js-qty-minus').addEventListener('click', () => chgQty(Number(item.id), -1));
+                div.querySelector('.js-qty-plus').addEventListener('click', () => chgQty(Number(item.id), 1));
                 container.appendChild(div);
             });
             
@@ -431,6 +451,7 @@ require_once 'auth_check.php';
 
             const payload = {
                 table_id: currentTableId,
+                booking_id: currentBookingId,
                 items: posCart.map(i => ({ menu_item_id: i.id, quantity: i.quantity }))
             };
 
@@ -550,20 +571,23 @@ require_once 'auth_check.php';
 
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>#${b.id}</td>
-                            <td>${b.name || 'Khách lẻ'}</td>
-                            <td>${b.phone || '-'}</td>
-                            <td>${b.date} <br> <span style="font-weight:600;color:#555;">${b.time}</span></td>
-                            <td><span class="badge" style="background:#e3f2fd;color:#1565c0;">${b.table_name || 'Chưa xếp'}</span></td>
-                            <td>${b.guests} người</td>
+                            <td>#${escapeHtml(b.id)}</td>
+                            <td>${escapeHtml(b.name || 'Khách lẻ')}</td>
+                            <td>${escapeHtml(b.phone || '-')}</td>
+                            <td>${escapeHtml(b.date)} <br> <span style="font-weight:600;color:#555;">${escapeHtml(b.time)}</span></td>
+                            <td><span class="badge" style="background:#e3f2fd;color:#1565c0;">${escapeHtml(b.table_name || 'Chưa xếp')}</span></td>
+                            <td>${escapeHtml(b.guests)} người</td>
                             <td><span class="badge ${statusClass}">${statusText}</span></td>
                             <td style="text-align:center;">
                                 ${b.status === 'pending' ? 
-                                    '<button onclick="updateStatus(' + b.id + ', \'confirmed\')" style="padding:4px 8px; border:none; background:#2ecc71; color:white; border-radius:4px; cursor:pointer; margin-right:4px;">Nhận</button>' +
-                                    '<button onclick="updateStatus(' + b.id + ', \'cancelled\')" style="padding:4px 8px; border:none; background:#e74c3c; color:white; border-radius:4px; cursor:pointer;">Hủy</button>' 
+                                    '<button type="button" data-status="confirmed" class="js-booking-status" style="padding:4px 8px; border:none; background:#2ecc71; color:white; border-radius:4px; cursor:pointer; margin-right:4px;">Nhận</button>' +
+                                    '<button type="button" data-status="cancelled" class="js-booking-status" style="padding:4px 8px; border:none; background:#e74c3c; color:white; border-radius:4px; cursor:pointer;">Hủy</button>'
                                     : '<span style="color:#ccc;">-</span>'}
                             </td>
                         `;
+                        tr.querySelectorAll('.js-booking-status').forEach(btn => {
+                            btn.addEventListener('click', () => updateStatus(Number(b.id), btn.dataset.status));
+                        });
                         tbody.appendChild(tr);
                     });
 

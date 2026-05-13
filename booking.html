@@ -10,7 +10,7 @@
     <meta property="og:type" content="website">
     <title>Đặt Bàn - Nhà Hàng Cơm Quê Dượng Bầu</title>
     <link rel="icon" href="photo/favicon.png" type="image/png">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=16">
     <style>
         /* FIX: Remove conflicting legacy background from style.css */
         header::before {
@@ -51,7 +51,6 @@
             <a href="index.html" class="nav-brand">
                 <img src="photo/favicon.png" alt="Nhà Hàng Cơm Quê Dượng Bầu" style="height: 48px; width: 48px; object-fit: cover; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
             </a>
-            <a href="index.html">Trang Chủ</a>
             <a href="index.html#menu">Thực Đơn</a>
             <a href="booking.html" class="active">Đặt Bàn</a>
             <div id="auth-actions" class="nav-auth"></div>
@@ -154,7 +153,7 @@
                                     </div>
                                 </fieldset>
 
-                                <button type="submit" id="btn-submit-booking" disabled>Xác Nhận Đặt Bàn</button>
+                                <button type="submit" id="btn-submit-booking" disabled style="min-height: 44px;">Xác Nhận Đặt Bàn</button>
                             </form>
                         </div>
                     </div>
@@ -182,7 +181,7 @@
                     <i class="fas fa-spinner fa-spin"></i> Hệ thống đang chờ thanh toán...
                 </p>
                 
-                <button onclick="closeQrModal()" style="width: 100%; background: #e74c3c; color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 5px;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'">
+                <button onclick="closeQrModal()" style="width: 100%; background: #e74c3c; color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 5px;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'" style="min-height: 44px;">
                     ✖ Đóng / Hủy Thanh Toán
                 </button>
             </div>

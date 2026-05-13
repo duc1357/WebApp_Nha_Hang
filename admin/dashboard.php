@@ -192,13 +192,30 @@ require_once 'auth_check.php';
             </div>
         </div>
 
-        <!-- REVENUE CHART -->
-        <div class="card" style="margin-bottom: 24px;">
-            <div class="card-header">
-                <h3>Biểu đồ doanh thu (7 ngày)</h3>
+        <!-- CHARTS SECTION -->
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px; margin-bottom: 24px;">
+            <!-- REVENUE CHART -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Biểu đồ doanh thu</h3>
+                    <select id="revenueChartFilter" onchange="loadRevenueChart(this.value)" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; font-family: inherit; font-size: 13px; outline:none; cursor:pointer;">
+                        <option value="day">7 ngày qua</option>
+                        <option value="month">Trong năm nay</option>
+                    </select>
+                </div>
+                <div style="height: 300px;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
             </div>
-            <div style="height: 300px;">
-                <canvas id="revenueChart"></canvas>
+
+            <!-- TOP DISHES CHART -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Top 5 Món bán chạy</h3>
+                </div>
+                <div style="height: 300px; display:flex; justify-content:center; align-items:center;">
+                    <canvas id="topDishesChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -436,18 +453,21 @@ function loadMenuItems() {
                     <td>${Number(m.price).toLocaleString('vi-VN')} VNĐ</td>
                     <td style="${activeColor}font-weight:600;">${activeText}</td>
                     <td>
-                        <button onclick="editMenuItem(${m.id}, '${m.name}', '${m.description || ''}', ${m.price}, '${m.photo || ''}')" style="margin-right:8px;background:none;border:none;cursor:pointer;color:#3498db;" title="Sửa">
+                        <button type="button" class="js-edit-menu" style="margin-right:8px;background:none;border:none;cursor:pointer;color:#3498db;" title="Sửa">
                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
-                        <button onclick="toggleMenuStatus(${m.id}, ${m.is_active})" style="margin-right:8px;background:none;border:none;cursor:pointer;color:${isActive ? '#e67e22' : '#27ae60'};" title="${toggleTitle}">
+                        <button type="button" class="js-toggle-menu" style="margin-right:8px;background:none;border:none;cursor:pointer;color:${isActive ? '#e67e22' : '#27ae60'};" title="${toggleTitle}">
                            ${toggleIcon}
                         </button>
-                        <button onclick="deleteMenuItem(${m.id})" style="background:none;border:none;cursor:pointer;color:#c0392b;" title="Xóa">
+                        <button type="button" class="js-delete-menu" style="background:none;border:none;cursor:pointer;color:#c0392b;" title="Xóa">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                     </td>
-                    <td>${m.created_at || ''}</td>
+                    <td>${escapeHtml(m.created_at || '')}</td>
                 `;
+                tr.querySelector('.js-edit-menu').addEventListener('click', () => editMenuItem(Number(m.id), m.name || '', m.description || '', Number(m.price) || 0, m.photo || ''));
+                tr.querySelector('.js-toggle-menu').addEventListener('click', () => toggleMenuStatus(Number(m.id), m.is_active));
+                tr.querySelector('.js-delete-menu').addEventListener('click', () => deleteMenuItem(Number(m.id)));
                 tbody.appendChild(tr);
             });
         })
@@ -591,15 +611,17 @@ function loadUsers() {
                     <td>${escapeHtml(u.email || '')}</td>
                     <td><span class="badge ${u.role === 'admin' ? 'res-confirmed' : 'res-pending'}">${escapeHtml(u.role || 'user')}</span></td>
                     <td>
-                        <button onclick="editUser(${u.id}, '${u.name||''}', '${u.phone||''}', '${u.email||''}', '${u.role||'user'}')" style="margin-right:8px;background:none;border:none;cursor:pointer;color:#3498db;" title="Sửa">
+                        <button type="button" class="js-edit-user" style="margin-right:8px;background:none;border:none;cursor:pointer;color:#3498db;" title="Sửa">
                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
-                        <button onclick="deleteUser(${u.id})" style="background:none;border:none;cursor:pointer;color:#c0392b;" title="Xóa">
+                        <button type="button" class="js-delete-user" style="background:none;border:none;cursor:pointer;color:#c0392b;" title="Xóa">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                     </td>
-                    <td>${u.created_at || ''}</td>
+                    <td>${escapeHtml(u.created_at || '')}</td>
                 `;
+                tr.querySelector('.js-edit-user').addEventListener('click', () => editUser(Number(u.id), u.name || '', u.phone || '', u.email || '', u.role || 'user'));
+                tr.querySelector('.js-delete-user').addEventListener('click', () => deleteUser(Number(u.id)));
                 tbody.appendChild(tr);
             });
         })
@@ -684,13 +706,18 @@ function deleteUser(id) {
 }
 
 
-function loadRevenueChart() {
-    fetch('../api/admin/get_revenue_stats.php')
+let revenueChartInstance = null;
+
+function loadRevenueChart(type = 'day') {
+    fetch(`../api/admin/get_revenue_stats.php?type=${type}`)
     .then(res => res.json())
     .then(data => {
         if(data.success && data.stats) {
             const ctx = document.getElementById('revenueChart').getContext('2d');
-            new Chart(ctx, {
+            if (revenueChartInstance) {
+                revenueChartInstance.destroy();
+            }
+            revenueChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: data.stats.labels,
@@ -727,8 +754,42 @@ function loadRevenueChart() {
     .catch(console.error);
 }
 
+function loadTopDishesChart() {
+    fetch('../api/admin/get_top_dishes.php')
+    .then(res => res.json())
+    .then(data => {
+        if(data.success && data.data && data.data.length > 0) {
+            const ctx = document.getElementById('topDishesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.data,
+                        backgroundColor: [
+                            '#e67e22', '#f1c40f', '#27ae60', '#2980b9', '#8e44ad'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } 
+                    }
+                }
+            });
+        } else {
+            document.getElementById('topDishesChart').parentElement.innerHTML = '<p style="color:#95a5a6; font-size:13px; font-style:italic;">Chưa có dữ liệu đơn hàng.</p>';
+        }
+    })
+    .catch(console.error);
+}
+
 // ======= Khởi động =======
-loadRevenueChart();
+loadRevenueChart('day');
+loadTopDishesChart();
 loadStats();
 loadBookings();
 loadRecentOrders();

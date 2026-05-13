@@ -4,6 +4,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once ROOT_PATH . '/api/services/csrf_service.php';
+require_once ROOT_PATH . '/api/services/rate_limit_service.php';
 
 // SEC-02: Validate CSRF
 CsrfService::validateRequest();
@@ -15,6 +16,12 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 $userId = (int) $_SESSION['user_id'];
+
+if (!RateLimitService::check('submit_review_' . $userId, 3, 60)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Thao tác quá nhanh. Vui lòng đợi 1 phút.']);
+    exit;
+}
 
 $data = json_decode(file_get_contents("php://input"), true);
 $orderId = isset($data['order_id']) ? (int) $data['order_id'] : 0;

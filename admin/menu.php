@@ -128,6 +128,20 @@ require_once 'auth_check.php';
             fetch('../api/auth/logout.php', { method: 'POST' }).then(() => window.location.href = '../index.html');
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function safeImagePath(path) {
+            const value = String(path || '');
+            return /^[A-Za-z0-9_./-]+$/.test(value) && !value.includes('..') ? '../' + value : '../photo/default-food.png';
+        }
+
         let currentPage = 1;
 
         document.addEventListener('DOMContentLoaded', () => loadMenu(1));
@@ -153,30 +167,35 @@ require_once 'auth_check.php';
                     data.items.forEach(m => {
                         const statusClass = m.is_active == 1 ? 'status-active' : 'status-inactive';
                         const statusText = m.is_active == 1 ? 'Đang bán' : 'Ngưng bán';
-                        const img = m.image_url ? '../' + m.image_url : '../photo/default.jpg';
+                        const img = m.image_url ? safeImagePath(m.image_url) : '../photo/default-food.png';
+                        const id = Number(m.id) || 0;
+                        const price = Number(m.price) || 0;
                         
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>#${m.id}</td>
-                            <td><img src="${img}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;"></td>
-                            <td><strong>${m.name}</strong></td>
-                            <td style="color:#7f8c8d;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.description}</td>
-                            <td>${Number(m.price).toLocaleString('vi-VN')}</td>
+                            <td>#${id}</td>
+                            <td><img src="${escapeHtml(img)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;"></td>
+                            <td><strong>${escapeHtml(m.name)}</strong></td>
+                            <td style="color:#7f8c8d;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.description)}</td>
+                            <td>${price.toLocaleString('vi-VN')}</td>
                             <td><span class="badge ${statusClass}">${statusText}</span></td>
                             <td style="text-align:center;">
-                                <button onclick="editMenuItem(${m.id}, '${m.name}', '${m.description}', ${m.price}, '${m.image_url}')" class="btn-action btn-edit" title="Sửa">
+                                <button type="button" class="btn-action btn-edit js-edit-menu" title="Sửa">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                 </button>
-                                <button onclick="toggleStatus(${m.id}, ${m.is_active})" class="btn-action btn-toggle" title="Đổi trạng thái" style="color:${m.is_active==1 ? '#c62828' : '#2e7d32'}; background:${m.is_active==1 ? '#ffebee' : '#e8f5e9'};">
+                                <button type="button" class="btn-action btn-toggle js-toggle-menu" title="Đổi trạng thái" style="color:${m.is_active==1 ? '#c62828' : '#2e7d32'}; background:${m.is_active==1 ? '#ffebee' : '#e8f5e9'};">
                                     ${m.is_active==1 
                                         ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>' 
                                         : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'}
                                 </button>
-                                <button onclick="deleteItem(${m.id})" class="btn-action btn-delete" title="Xóa" style="color:#c0392b; background:#f9ebea;">
+                                <button type="button" class="btn-action btn-delete js-delete-menu" title="Xóa" style="color:#c0392b; background:#f9ebea;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 </button>
                             </td>
                         `;
+                        tr.querySelector('.js-edit-menu').addEventListener('click', () => editMenuItem(id, m.name || '', m.description || '', price, m.image_url || ''));
+                        tr.querySelector('.js-toggle-menu').addEventListener('click', () => toggleStatus(id, m.is_active));
+                        tr.querySelector('.js-delete-menu').addEventListener('click', () => deleteItem(id));
                         tbody.appendChild(tr);
                     });
 

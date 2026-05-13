@@ -33,7 +33,7 @@ if (empty($email) || empty($password)) {
 $conn = getDbConnection();
 
 // Check email and role='admin'
-$stmt = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ? AND role = 'admin'");
+$stmt = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ? AND role = 'admin' AND deleted_at IS NULL");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -51,7 +51,7 @@ if ($result->num_rows === 1) {
 
         echo json_encode(['success' => true, 'message' => 'Đăng nhập thành công']);
     } else {
-        Logger::auth('Admin login failed - wrong password', ['email' => $email], 'auth');
+        Logger::auth('Admin login failed - wrong password', ['email' => $email]);
         Logger::security('Admin brute-force attempt?', ['email' => $email]);
         http_response_code(401);
         echo json_encode(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.']);

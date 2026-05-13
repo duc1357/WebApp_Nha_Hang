@@ -34,7 +34,7 @@ window.loadUserProfile = function() {
     if (document.getElementById('u_phone')) document.getElementById('u_phone').value = user.phone || '';
 
     const img = document.getElementById('profile-avatar-img');
-    if (img) img.src = user.avatar || 'photo/default-user.png';
+    if (img) img.src = /^photo\/[A-Za-z0-9._/\-]+$/.test(user.avatar || '') ? user.avatar : 'photo/default-user.png';
 };
 
 /* =========================================
@@ -247,7 +247,7 @@ window.loadUserHistory = function(o_page, b_page) {
                                 <strong>${b.date} - ${b.time.substring(0, 5)}</strong>
                                 <span class="badge badge-${bStatusBadge(b.status)}">${bStatusLabel(b.status)}</span>
                             </div>
-                            <p>Bàn: <strong>${b.table_name || b.table_number || 'Chưa xếp'}</strong> - ${b.floor || ''}</p>
+                            <p>Bàn: <strong>${escapeHTML(b.table_name || b.table_number || 'Chưa xếp')}</strong> - ${escapeHTML(b.floor || '')}</p>
                             <p>Khách: ${b.guests} người</p>
                         </div>
                     `).join('');
@@ -299,7 +299,7 @@ window.viewOrderDetails = function(orderId) {
         .then(res => res.json())
         .then(data => {
             if (!content) return;
-            if (!data.success) { content.innerHTML = `<p style="color:red;">Lỗi: ${data.message}</p>`; return; }
+            if (!data.success) { content.innerHTML = `<p style="color:red;">Lỗi: ${escapeHTML(data.message)}</p>`; return; }
             if (!data.data?.length) { content.innerHTML = '<p>Không có món ăn nào trong đơn này.</p>'; return; }
 
             let total = 0;
@@ -309,11 +309,13 @@ window.viewOrderDetails = function(orderId) {
             data.data.forEach(item => {
                 const subtotal = item.quantity * item.unit_price;
                 total += subtotal;
+                const image = String(item.image || 'photo/default-food.png');
+                const safeImage = /^photo\/[A-Za-z0-9._/\-]+$/.test(image) ? image : 'photo/default-food.png';
                 html += `
                     <tr style="border-bottom:1px solid #eee;">
                         <td style="padding:8px;display:flex;align-items:center;gap:10px;">
-                            <img src="${item.image || 'photo/default-food.png'}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">
-                            <span>${item.name}</span>
+                            <img src="${safeImage}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.src='photo/default-food.png'">
+                            <span>${escapeHTML(item.name)}</span>
                         </td>
                         <td style="padding:8px;text-align:center;">${item.quantity}</td>
                         <td style="padding:8px;text-align:right;">${formatCurrency(item.unit_price)}</td>

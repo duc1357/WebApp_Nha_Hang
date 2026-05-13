@@ -13,10 +13,16 @@ if (session_status() === PHP_SESSION_NONE) {
     }
     
     ini_set('session.cookie_samesite', 'Lax');
-    
-    // Set lifetime (e.g., 2 hours)
+
+    // Set lifetime (e.g., 2 hours) while preserving secure cookie flags.
     ini_set('session.gc_maxlifetime', 7200);
-    session_set_cookie_params(7200);
+    session_set_cookie_params([
+        'lifetime' => 7200,
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     
     session_start();
 }

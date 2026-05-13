@@ -78,17 +78,18 @@ window.loadBookingMenu = function() {
 
                 const el = document.createElement('div');
                 el.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;';
+                const safeName = escapeHTML(item.name);
                 el.innerHTML = `
                     <div>
-                        <div style="font-weight:600">${item.name}</div>
+                        <div style="font-weight:600">${safeName}</div>
                         <div style="color:var(--primary);font-size:0.9rem">${formatCurrency(item.price)}</div>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
                         <button type="button" class="btn btn-outline" style="padding:2px 8px;border-radius:4px"
-                            onclick="updateBookingItem(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price}, -1)">-</button>
+                            onclick="updateBookingItem(${item.id}, '${safeName.replace(/'/g, "\\'")}', ${item.price}, -1)">-</button>
                         <span id="bkg-qty-${item.id}" style="width:20px;text-align:center">${qtyInCart}</span>
                         <button type="button" class="btn btn-primary" style="padding:2px 8px;border-radius:4px"
-                            onclick="updateBookingItem(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price}, 1)">+</button>
+                            onclick="updateBookingItem(${item.id}, '${safeName.replace(/'/g, "\\'")}', ${item.price}, 1)">+</button>
                     </div>
                 `;
                 list.appendChild(el);

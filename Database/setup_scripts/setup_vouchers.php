@@ -1,6 +1,7 @@
 <?php
-// api/admin/setup_vouchers.php
-require_once __DIR__ . '/auth_check_api.php';
+// Database/setup_scripts/setup_vouchers.php
+require_once __DIR__ . '/../../api/admin/auth_check_api.php';
+requireAdminPost();
 header('Content-Type: text/plain; charset=utf-8');
 require_once __DIR__ . '/../../config/db.php';
 

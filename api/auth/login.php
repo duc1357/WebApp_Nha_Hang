@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once __DIR__ . '/../../api/services/csrf_service.php';
 require_once __DIR__ . '/../../api/services/rate_limit_service.php';
+require_once __DIR__ . '/../../api/services/jwt_service.php';
 
 // Rate Limit: 20 attempts / 60s
 if (!RateLimitService::check('login', 20, 60)) {
@@ -37,9 +38,9 @@ if ($identifier === '' || $password === '') {
 }
 
 // Tìm user theo email hoặc phone
-$sql = "SELECT id, name, email, phone, password, role, avatar 
+$sql = "SELECT id, name, email, phone, password, role, avatar, token_version
         FROM users 
-        WHERE email = ? OR phone = ?
+        WHERE (email = ? OR phone = ?) AND deleted_at IS NULL
         LIMIT 1";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("ss", $identifier, $identifier);
@@ -80,9 +81,17 @@ $_SESSION['role']    = $user['role'];
 // Rotate CSRF token sau login (ngăn session fixation và token reuse)
 CsrfService::rotateToken();
 
+$jwt = JwtService::generate([
+    'user_id' => (int)$user['id'],
+    'role' => $user['role'],
+    'token_version' => (int)($user['token_version'] ?? 0),
+]);
+
 echo json_encode([
     "success" => true,
     "message" => "Đăng nhập thành công",
+    "token" => $jwt,
+    "expires_in" => JWT_TTL_SECONDS,
     "user" => [
         "id"    => $user['id'],
         "name"  => $user['name'],

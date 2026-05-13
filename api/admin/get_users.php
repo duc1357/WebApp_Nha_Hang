@@ -17,6 +17,9 @@ $sql = "SELECT id, name, phone, email, role, created_at
 $result = $conn->query($sql);
 $users = [];
 while ($row = $result->fetch_assoc()) {
+    if (($row['role'] ?? '') === 'customer') {
+        $row['role'] = 'user';
+    }
     $users[] = $row;
 }
 

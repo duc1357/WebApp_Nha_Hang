@@ -128,6 +128,15 @@ require_once 'auth_check.php';
     </div>
 
     <script>
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         function loadVouchers() {
             fetch('../api/admin/get_vouchers.php')
                 .then(res => res.json())
@@ -145,21 +154,28 @@ require_once 'auth_check.php';
                         const isLimitReached = v.used_count >= v.usage_limit;
                         let status = (isExpired || isLimitReached) ? '<span class="badge status-expired">Ngưng hđ</span>' : '<span class="badge status-active">Hoạt động</span>';
                         if (isExpired) status = '<span class="badge status-expired">Hết hạn</span>';
+                        const id = Number(v.id) || 0;
+                        const discountValue = Number(v.discount_value) || 0;
+                        const minOrderValue = Number(v.min_order_value) || 0;
+                        const usageLimit = Number(v.usage_limit) || 0;
+                        const usedCount = Number(v.used_count) || 0;
 
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td><strong style="color:var(--primary)">${v.code}</strong></td>
+                            <td><strong style="color:var(--primary)">${escapeHtml(v.code)}</strong></td>
                             <td>${v.discount_type === 'percent' ? 'Phần trăm' : 'Tiền mặt'}</td>
-                            <td>${v.discount_type === 'percent' ? v.discount_value + '%' : new Intl.NumberFormat('vi-VN').format(v.discount_value) + 'đ'}</td>
-                            <td>${new Intl.NumberFormat('vi-VN').format(v.min_order_value)}đ</td>
-                            <td>${v.used_count} / ${v.usage_limit}</td>
-                            <td>${v.expire_date}</td>
+                            <td>${v.discount_type === 'percent' ? discountValue + '%' : new Intl.NumberFormat('vi-VN').format(discountValue) + 'đ'}</td>
+                            <td>${new Intl.NumberFormat('vi-VN').format(minOrderValue)}đ</td>
+                            <td>${usedCount} / ${usageLimit}</td>
+                            <td>${escapeHtml(v.expire_date)}</td>
                             <td>${status}</td>
                             <td>
-                                <button class="btn-action btn-edit" onclick="editVoucher(${v.id}, '${v.code}', '${v.discount_type}', ${v.discount_value}, ${v.min_order_value}, ${v.usage_limit}, '${v.expire_date}')">Sửa</button>
-                                <button class="btn-action btn-delete" onclick="deleteVoucher(${v.id})">Xóa</button>
+                                <button type="button" class="btn-action btn-edit js-edit-voucher">Sửa</button>
+                                <button type="button" class="btn-action btn-delete js-delete-voucher">Xóa</button>
                             </td>
                         `;
+                        tr.querySelector('.js-edit-voucher').addEventListener('click', () => editVoucher(id, v.code || '', v.discount_type || 'fixed', discountValue, minOrderValue, usageLimit, v.expire_date || ''));
+                        tr.querySelector('.js-delete-voucher').addEventListener('click', () => deleteVoucher(id));
                         tbody.appendChild(tr);
                     });
                 })
@@ -278,8 +294,7 @@ require_once 'auth_check.php';
         document.addEventListener('DOMContentLoaded', loadVouchers);
 
         function logout() {
-            // ... copy from other pages or import script
-            fetch('../api/admin/logout.php').then(() => window.location.href = 'index.php');
+            fetch('../api/auth/logout.php', { method: 'POST' }).finally(() => window.location.href = '../index.html');
         }
     </script>
 </body>

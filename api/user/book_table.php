@@ -7,6 +7,7 @@ header('X-Content-Type-Options: nosniff');
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once __DIR__ . '/../../api/services/csrf_service.php';
+require_once __DIR__ . '/../../api/services/rate_limit_service.php';
 
 // Validate CSRF
 CsrfService::validateRequest();
@@ -31,8 +32,35 @@ $table_id = $data['table_id'] ?? null;
 $has_preorder = !empty($data['has_preorder']);
 $items = $data['items'] ?? [];
 
+$bookingDateTime = DateTime::createFromFormat('Y-m-d H:i', (string)$date . ' ' . (string)$time, new DateTimeZone('Asia/Ho_Chi_Minh'));
+
 if (!$name || !$phone || !$date || !$time || !$guests) {
     echo json_encode(['success' => false, 'message' => 'Dữ liệu không đầy đủ.']);
+    exit;
+}
+
+if (!preg_match('/^0[0-9]{9}$/', (string)$phone)) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'So dien thoai khong hop le.']);
+    exit;
+}
+
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$date) || !preg_match('/^\d{2}:\d{2}$/', (string)$time)) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'Ngay hoac gio khong hop le.']);
+    exit;
+}
+
+if (!$bookingDateTime || $bookingDateTime < new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'))) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'Khong the dat ban trong qua khu.']);
+    exit;
+}
+
+$hour = (int)$bookingDateTime->format('H');
+if ($hour < 8 || $hour > 22) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'Vui long chon gio trong khung 08:00 - 22:00.']);
     exit;
 }
 
@@ -44,13 +72,50 @@ if (!$table_id) {
 $guestsInt = (int)$guests;
 $table_number_int = (int)$table_id; 
 
+if ($guestsInt < 1 || $guestsInt > 20) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'So khach khong hop le.']);
+    exit;
+}
+
 $user_id = $_SESSION['user_id'] ?? null;
 if (!$user_id) {
     echo json_encode(['success' => false, 'message' => 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.']);
     exit;
 }
 
+if (!RateLimitService::check('book_table_' . $user_id, 5, 60)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Thao tác quá nhanh. Vui lòng đợi 1 phút.']);
+    exit;
+}
+
 // 1. Check duplicate & overlapping (+/- 2 hours)
+$conn->begin_transaction();
+
+$tableStmt = $conn->prepare("SELECT capacity FROM tables WHERE id = ? FOR UPDATE");
+$tableStmt->bind_param("i", $table_id);
+$tableStmt->execute();
+$tableRes = $tableStmt->get_result();
+$table = $tableRes->fetch_assoc();
+$tableStmt->close();
+
+if (!$table) {
+    $conn->rollback();
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'Ban khong ton tai.']);
+    $conn->close();
+    exit;
+}
+
+if ($guestsInt > (int)$table['capacity']) {
+    $conn->rollback();
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => 'So khach vuot qua suc chua cua ban.']);
+    $conn->close();
+    exit;
+}
+
 $checkSql = "
     SELECT id, time 
     FROM bookings 
@@ -58,6 +123,7 @@ $checkSql = "
       AND date = ? 
       AND status != 'cancelled'
       AND ABS(TIMESTAMPDIFF(MINUTE, STR_TO_DATE(time, '%H:%i'), STR_TO_DATE(?, '%H:%i'))) <= 120
+    FOR UPDATE
 ";
 $stmt = $conn->prepare($checkSql);
 $stmt->bind_param("iss", $table_id, $date, $time);
@@ -65,6 +131,7 @@ $stmt->execute();
 $res = $stmt->get_result();
 
 if ($res->num_rows > 0) {
+    $conn->rollback();
     echo json_encode(['success' => false, 'message' => 'Bàn này đã được đặt trong khoảng 2 tiếng gần thời gian bạn chọn. Vui lòng chọn bàn/thời gian khác.']);
     $stmt->close();
     $conn->close();
@@ -77,8 +144,6 @@ $total_amount = 0;
 $deposit_amount = 0;
 $status = 'pending'; // Default
 
-$conn->begin_transaction();
-
 try {
     if ($has_preorder && !empty($items)) {
         // PERF-01: Bulk query thay vì N+1 query trong vòng lặp
@@ -88,7 +153,7 @@ try {
         if (!empty($ids)) {
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $types        = str_repeat('i', count($ids));
-            $priceStmt    = $conn->prepare("SELECT id, price FROM menu_items WHERE id IN ($placeholders)");
+            $priceStmt    = $conn->prepare("SELECT id, price FROM menu_items WHERE id IN ($placeholders) AND is_active = 1 AND deleted_at IS NULL");
             $priceStmt->bind_param($types, ...$ids);
             $priceStmt->execute();
             $priceResult = $priceStmt->get_result();
