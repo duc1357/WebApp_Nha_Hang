@@ -25,3 +25,5 @@ photo/menu/
 *.DS_Store
 Thumbs.db
 
+# Local isolated worktrees
+.worktrees/
