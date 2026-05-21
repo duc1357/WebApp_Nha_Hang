@@ -1,8 +1,8 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/update_voucher.php
 require_once __DIR__ . '/auth_check_api.php';
 requireAdminPost();
-header('Content-Type: application/json; charset=utf-8');
 
 require_once ROOT_PATH . '/config/db.php';
 
@@ -16,13 +16,11 @@ $usageLimit = (int)($data['usage_limit'] ?? 100);
 $expireDate = trim($data['expire_date'] ?? '');
 
 if ($id <= 0 || !preg_match('/^[A-Z0-9_-]{3,30}$/', $code) || !in_array($discountType, ['percent', 'fixed'], true) || $discountValue <= 0 || $usageLimit <= 0 || !$expireDate) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'Thông tin mã giảm giá không hợp lệ'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'Thông tin mã giảm giá không hợp lệ'], 422);
     exit;
 }
 if ($discountType === 'percent' && $discountValue > 100) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'Phần trăm giảm giá không được vượt quá 100%'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'Phần trăm giảm giá không được vượt quá 100%'], 422);
     exit;
 }
 
@@ -32,8 +30,7 @@ $stmt = $conn->prepare('SELECT id FROM vouchers WHERE code = ? AND id != ?');
 $stmt->bind_param('si', $code, $id);
 $stmt->execute();
 if ($stmt->get_result()->num_rows > 0) {
-    http_response_code(409);
-    echo json_encode(['success' => false, 'message' => 'Mã voucher này đã tồn tại'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'Mã voucher này đã tồn tại'], 409);
     exit;
 }
 $stmt->close();
@@ -46,11 +43,10 @@ $stmt = $conn->prepare('
 $stmt->bind_param('ssddisi', $code, $discountType, $discountValue, $minOrderValue, $usageLimit, $expireDate, $id);
 
 if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Cập nhật thành công'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => true, 'message' => 'Cập nhật thành công']);
 } else {
     error_log('[AdminUpdateVoucher] ' . $stmt->error);
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Không thể cập nhật mã giảm giá'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'Không thể cập nhật mã giảm giá'], 500);
 }
 
 $stmt->close();

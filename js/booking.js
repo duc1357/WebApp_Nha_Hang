@@ -35,6 +35,23 @@ async function fetchTables() {
 }
 
 /**
+ * Render hiệu ứng lấp lánh (Shimmer Skeleton) trong lúc tải sơ đồ bàn
+ */
+window.renderTableShimmer = function(container) {
+    if (!container) return;
+    container.innerHTML = `
+        <div class="table-shimmer-container">
+            <div class="table-shimmer-box"></div>
+            <div class="table-shimmer-box"></div>
+            <div class="table-shimmer-box"></div>
+            <div class="table-shimmer-box"></div>
+            <div class="table-shimmer-box"></div>
+            <div class="table-shimmer-box"></div>
+        </div>
+    `;
+};
+
+/**
  * Entry point: load bàn theo ngày/giờ đã chọn
  */
 window.loadTables = async function() {
@@ -47,33 +64,37 @@ window.loadTables = async function() {
     const mapContainer = document.getElementById('table-map-container');
 
     if (!date || !time) {
-        if (mapContainer) mapContainer.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Vui lòng chọn ngày và giờ.</p>';
+        if (mapContainer) renderEmptyState(mapContainer, 'Vui lòng chọn ngày và giờ.');
         return;
     }
     if (!validateDate(date)) { showToast('Ngày không hợp lệ (phải từ hôm nay)!', 'error'); return; }
 
     selectedTableId = null;
     clearBookingSelection();
-    if (mapContainer) mapContainer.innerHTML = '<div class="spinner"></div> Đang kiểm tra bàn trống...';
+    if (mapContainer) renderTableShimmer(mapContainer);
 
     try {
         if (allTablesData.length === 0) allTablesData = await fetchTables();
 
-        const bookedRes  = await fetch(`api/public/get_booked_tables.php?date=${date}&time=${time}`);
-        const bookedList = await bookedRes.json();
-        renderTableMap(allTablesData, bookedList);
+        const bookedRes    = await fetch(`api/public/get_booked_tables.php?date=${date}&time=${time}`);
+        const responseData = await bookedRes.json();
+        const bookedList   = responseData.booked || [];
+        const bookedDetails = responseData.details || {};
+        
+        renderTableMap(allTablesData, bookedList, bookedDetails);
     } catch (err) {
         console.error('Lỗi loadTables:', err);
-        if (mapContainer) mapContainer.innerHTML = '<p class="text-danger text-center">Lỗi tải dữ liệu. Vui lòng thử lại.</p>';
+        if (mapContainer) renderErrorState(mapContainer, 'Lỗi tải dữ liệu. Vui lòng thử lại.');
     }
 };
 
 /**
  * Render sơ đồ bàn theo tầng (tab UI)
- * @param {Array} allTables   Tất cả bàn từ API
- * @param {Array} bookedList  Danh sách ID bàn đã được đặt
+ * @param {Array} allTables      Tất cả bàn từ API
+ * @param {Array} bookedList     Danh sách ID bàn đã được đặt
+ * @param {Object} bookedDetails Chi tiết khung giờ bận của từng bàn
  */
-window.renderTableMap = function(allTables, bookedList) {
+window.renderTableMap = function(allTables, bookedList, bookedDetails = {}) {
     const tabsContainer = document.getElementById('floor-tabs');
     const mapContainer  = document.getElementById('table-map-container');
     if (!tabsContainer || !mapContainer) return;
@@ -90,7 +111,7 @@ window.renderTableMap = function(allTables, bookedList) {
 
     const floorNames = Object.keys(groups).sort();
     if (floorNames.length === 0) {
-        mapContainer.innerHTML = '<p>Không tìm thấy dữ liệu bàn.</p>';
+        renderEmptyState(mapContainer, 'Không tìm thấy dữ liệu bàn.');
         return;
     }
 
@@ -119,6 +140,11 @@ window.renderTableMap = function(allTables, bookedList) {
             tableBox.className  = `table-box ${statusClass}`;
             tableBox.dataset.id = t.id;
             tableBox.innerHTML  = `<h3>${escapeHTML(t.name)}</h3><p>${escapeHTML(t.capacity || '4')} người</p>`;
+
+            // Gán tooltip bận nếu có
+            if (isBooked && bookedDetails[t.id]) {
+                tableBox.setAttribute('data-tooltip', bookedDetails[t.id].duration);
+            }
 
             if (!isBooked) {
                 tableBox.onclick = () => onTableClick(tableBox, floorName, t.name, t.id);
@@ -229,6 +255,9 @@ window.submitBooking = function() {
     const btn = document.getElementById('btn-submit-booking') || document.querySelector('button[type="submit"]');
     setLoading(btn, true);
 
+    // Gửi giỏ hàng rỗng nếu tắt đặt trước (Phương án B)
+    const isPreorderChecked = document.getElementById('toggle-preorder')?.checked;
+    
     fetch('api/user/book_table.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -237,8 +266,8 @@ window.submitBooking = function() {
             floor: floor || '',
             table_number: tableName || '',
             table_id: tableId || '',
-            has_preorder: window.isPreorderEnabled || false,
-            items: window.bookingCart || []
+            has_preorder: isPreorderChecked || false,
+            items: isPreorderChecked ? (window.bookingCart || []) : []
         })
     })
     .then(res => res.json())
@@ -265,7 +294,7 @@ window.submitBooking = function() {
 };
 
 /* =========================================
-   PREORDER LOGIC
+   PREORDER LOGIC WITH DRAWER UX (Phương án B)
    ========================================= */
 window.togglePreorderSection = function() {
     const isChecked = document.getElementById('toggle-preorder')?.checked;
@@ -275,13 +304,68 @@ window.togglePreorderSection = function() {
 
     if (isChecked) {
         section.style.display = 'block';
-        const menuList = document.getElementById('booking-menu-list');
-        if (menuList && menuList.innerHTML.includes('Đang tải')) loadBookingMenu();
+        const drawerList = document.getElementById('drawer-menu-list');
+        // Nạp sẵn thực đơn vào Drawer nếu chưa nạp
+        if (drawerList && drawerList.innerHTML.includes('Đang tải')) {
+            loadBookingMenu();
+        }
     } else {
         section.style.display = 'none';
-        window.bookingCart = [];
-        updateBookingCartUI();
     }
+    updateBookingCartUI();
+};
+
+window.openPreorderDrawer = function() {
+    const drawer = document.getElementById('preorder-drawer');
+    if (drawer) {
+        drawer.classList.remove('hidden');
+        // Kích hoạt animation mượt mà
+        setTimeout(() => drawer.classList.add('active'), 10);
+        
+        // Đảm bảo dữ liệu mới nhất được nạp
+        const drawerList = document.getElementById('drawer-menu-list');
+        if (drawerList && drawerList.innerHTML.includes('Đang tải')) {
+            loadBookingMenu();
+        } else {
+            // Đồng bộ số lượng hiện tại nếu giỏ hàng thay đổi bên ngoài
+            syncDrawerQuantities();
+        }
+    }
+};
+
+window.closePreorderDrawer = function() {
+    const drawer = document.getElementById('preorder-drawer');
+    if (drawer) {
+        drawer.classList.remove('active');
+        // Đợi kết thúc animation trượt mới ẩn hẳn overlay
+        setTimeout(() => drawer.classList.add('hidden'), 400);
+    }
+};
+
+window.filterDrawerMenu = function() {
+    const query = document.getElementById('drawer-search')?.value.toLowerCase().trim() || '';
+    const items = document.querySelectorAll('.drawer-menu-item');
+    
+    items.forEach(item => {
+        const name = item.dataset.name || '';
+        const desc = item.dataset.desc || '';
+        if (name.includes(query) || desc.includes(query)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+};
+
+window.syncDrawerQuantities = function() {
+    // Reset toàn bộ số lượng hiển thị trong Drawer về 0
+    document.querySelectorAll('.drawer-qty-value').forEach(el => el.innerText = '0');
+    
+    // Cập nhật lại số lượng theo giỏ hàng hiện có
+    window.bookingCart.forEach(item => {
+        const el = document.getElementById(`bkg-qty-${item.menu_item_id}`);
+        if (el) el.innerText = item.quantity;
+    });
 };
 
 window.updateBookingItem = function(id, name, price, change) {
@@ -297,26 +381,96 @@ window.updateBookingItem = function(id, name, price, change) {
             item.quantity = 0;
         }
     }
+    
+    // Cập nhật số lượng hiển thị trong Drawer
     const qtyEl = document.getElementById(`bkg-qty-${id}`);
     if (qtyEl) qtyEl.innerText = item.quantity;
+    
     updateBookingCartUI();
 };
 
 window.updateBookingCartUI = function() {
     const total   = window.bookingCart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
     const deposit = Math.ceil(total * 0.3);
+    const count   = window.bookingCart.reduce((s, i) => s + i.quantity, 0);
+
+    // 1. Cập nhật tóm tắt trong Drawer
+    const drawerCount = document.getElementById('drawer-selected-count');
+    const drawerTotal = document.getElementById('drawer-total-amount');
+    if (drawerCount) drawerCount.innerText = `${count} món`;
+    if (drawerTotal) drawerTotal.innerText = formatCurrency(total);
+
+    // 2. Cập nhật tóm tắt trên form chính
     const totalEl   = document.getElementById('preorder-total');
     const depositEl = document.getElementById('preorder-deposit');
     if (totalEl)   totalEl.innerText   = formatCurrency(total);
     if (depositEl) depositEl.innerText = formatCurrency(deposit);
 
+    // 3. Render danh sách tóm tắt các món đã chọn trong form chính
+    const summaryList = document.getElementById('booking-selected-summary-list');
+    if (summaryList) {
+        if (window.bookingCart.length === 0) {
+            summaryList.innerHTML = `<p class="text-muted" style="font-size: 0.9rem; margin: 0;">Chưa chọn món nào. Nhấn nút "Chọn món ăn" để bắt đầu.</p>`;
+        } else {
+            summaryList.innerHTML = window.bookingCart.map(item => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f3f5; font-size: 0.9rem;">
+                    <span style="font-weight: 500; color: #34495e;">${escapeHTML(item.name)} <span style="color: var(--primary); font-weight: bold; margin-left: 4px;">x${item.quantity}</span></span>
+                    <span style="color: #2c3e50; font-weight: 600;">${formatCurrency(item.unit_price * item.quantity)}</span>
+                </div>
+            `).join('');
+        }
+    }
+
+    // 4. Đồng bộ nút bấm submit
     const btn = document.getElementById('btn-submit-booking');
     if (btn && !btn.disabled) {
-        btn.innerText = (window.isPreorderEnabled && deposit > 0)
+        const isPreorderChecked = document.getElementById('toggle-preorder')?.checked;
+        btn.innerText = (isPreorderChecked && deposit > 0)
             ? 'Xác Nhận & Thanh Toán Cọc'
             : 'Xác Nhận Đặt Bàn';
     }
 };
 
 // Khởi tạo khi DOM sẵn sàng
-document.addEventListener('DOMContentLoaded', () => fillBookingForm());
+document.addEventListener('DOMContentLoaded', () => {
+    fillBookingForm();
+
+    const now = new Date();
+    const dateInput = document.getElementById('date');
+    const timeInput = document.getElementById('time');
+
+    if (dateInput) dateInput.valueAsDate = now;
+    if (timeInput) {
+        now.setHours(now.getHours() + 1);
+        const hours = String(now.getHours()).padStart(2, '0');
+        timeInput.value = `${hours}:00`;
+    }
+
+    if (typeof loadTables === 'function') {
+        loadTables();
+    }
+
+    document.getElementById('date')?.addEventListener('change', loadTables);
+    document.getElementById('time')?.addEventListener('change', loadTables);
+    document.getElementById('toggle-preorder')?.addEventListener('change', togglePreorderSection);
+    document.getElementById('drawer-search')?.addEventListener('input', filterDrawerMenu);
+    document.getElementById('booking-form')?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        submitBooking();
+    });
+    document.getElementById('preorder-drawer')?.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            closePreorderDrawer();
+        }
+    });
+});
+
+document.addEventListener('click', (event) => {
+    const action = event.target.closest('[data-action]')?.dataset.action;
+    if (action === 'open-preorder-drawer') {
+        openPreorderDrawer();
+    }
+    if (action === 'close-preorder-drawer') {
+        closePreorderDrawer();
+    }
+});

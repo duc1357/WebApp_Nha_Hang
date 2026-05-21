@@ -1,33 +1,31 @@
 <?php
-// api/auth/refresh_token.php
-// Endpoint: POST /api/auth/refresh_token.php
-// Chức năng: Làm mới JWT token trong grace period 30 phút sau khi hết hạn
-//
-// Request body: { "token": "<jwt_token>" }
-// Response: { "success": true, "token": "<new_jwt>", "expires_in": 604800 }
-
-header('Content-Type: application/json; charset=utf-8');
-
 require_once __DIR__ . '/../../config/constants.php';
-require_once ROOT_PATH . '/api/base.php';
+require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/request_service.php';
+require_once ROOT_PATH . '/api/services/validation_service.php';
 require_once ROOT_PATH . '/api/services/jwt_service.php';
 
-requireMethod('POST');
-
-$data     = getJsonBody(required: true);
-$oldToken = $data['token'] ?? '';
-
-if (empty($oldToken)) {
-    apiError('Token không được để trống', 400);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    ResponseService::error('Method Not Allowed', 405);
 }
 
-$newToken = JwtService::refresh($oldToken);
+try {
+    $data = RequestService::json(true);
+    $oldToken = ValidationService::requiredString($data, 'token', 'Token khong duoc de trong');
+    $newToken = JwtService::refresh($oldToken);
 
-if (!$newToken) {
-    apiError('Token đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.', 401);
+    if (!$newToken) {
+        ResponseService::error('Token da het han hoac khong hop le. Vui long dang nhap lai.', 401);
+    }
+
+    ResponseService::success([
+        'message' => 'Token da duoc lam moi',
+        'token' => $newToken,
+        'expires_in' => JWT_TTL_SECONDS,
+    ]);
+} catch (InvalidArgumentException $e) {
+    ResponseService::error($e->getMessage(), $e->getCode() ?: 400);
+} catch (Throwable $e) {
+    error_log('[RefreshToken] ' . $e->getMessage());
+    ResponseService::error('Loi he thong. Vui long thu lai sau.', 500);
 }
-
-apiSuccess([
-    'token'      => $newToken,
-    'expires_in' => JWT_TTL_SECONDS,
-], 'Token đã được làm mới');

@@ -1,12 +1,12 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // [2.3] Dùng auth_check_api.php chuẩn hóa (đã include constants.php + session check)
 require_once __DIR__ . '/auth_check_api.php';
 requireAdminPost();
 require_once ROOT_PATH . '/config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Invalid Request Method']);
+    ResponseService::json(['success' => false, 'message' => 'Invalid Request Method']);
     exit;
 }
 
@@ -17,11 +17,11 @@ $description = trim(htmlspecialchars($_POST['description'] ?? '', ENT_QUOTES, 'U
 $photoUrl    = 'photo/default-food.png';
 
 if (strlen($name) < 1 || strlen($name) > 100) {
-    echo json_encode(['success' => false, 'message' => 'Tên món phải từ 1-100 ký tự']);
+    ResponseService::json(['success' => false, 'message' => 'Tên món phải từ 1-100 ký tự']);
     exit;
 }
 if ($price <= 0 || $price > 10_000_000) {
-    echo json_encode(['success' => false, 'message' => 'Giá không hợp lệ']);
+    ResponseService::json(['success' => false, 'message' => 'Giá không hợp lệ']);
     exit;
 }
 
@@ -32,7 +32,7 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
     // Giới hạn kích thước: 2MB
     $maxSize = 2 * 1024 * 1024;
     if ($file['size'] > $maxSize) {
-        echo json_encode(['success' => false, 'message' => 'Ảnh không được vượt quá 2MB']);
+        ResponseService::json(['success' => false, 'message' => 'Ảnh không được vượt quá 2MB']);
         exit;
     }
 
@@ -50,7 +50,7 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
     ];
 
     if (!array_key_exists($mimeType, $allowedMimes)) {
-        echo json_encode(['success' => false, 'message' => 'Chỉ chấp nhận ảnh JPG, PNG, WEBP']);
+        ResponseService::json(['success' => false, 'message' => 'Chỉ chấp nhận ảnh JPG, PNG, WEBP']);
         exit;
     }
 
@@ -67,7 +67,7 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
     if (move_uploaded_file($file['tmp_name'], $targetPath)) {
         $photoUrl = 'photo/menu/' . $filename;
     } else {
-        echo json_encode(['success' => false, 'message' => 'Lỗi lưu file ảnh']);
+        ResponseService::json(['success' => false, 'message' => 'Lỗi lưu file ảnh']);
         exit;
     }
 }
@@ -78,11 +78,10 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param("ssis", $name, $description, $price, $photoUrl);
 
 if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Thêm món thành công', 'data' => ['id' => $conn->insert_id, 'photo' => $photoUrl]]);
+    ResponseService::json(['success' => true, 'message' => 'Thêm món thành công', 'data' => ['id' => $conn->insert_id, 'photo' => $photoUrl]]);
 } else {
     error_log('[AdminAddMenuItem] ' . $stmt->error);
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Không thể thêm món'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'Không thể thêm món'], 500);
 }
 
 $stmt->close();

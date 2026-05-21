@@ -1,15 +1,14 @@
 <?php
 // api/public/check_voucher.php
-header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '/../services/response_service.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 $code = strtoupper(trim($data['code'] ?? ''));
 $orderValue = floatval($data['order_value'] ?? 0);
 
 if (!$code) {
-    echo json_encode(['success' => false, 'message' => 'Vui lòng nhập mã']);
-    exit;
+    ResponseService::error('Vui lòng nhập mã');
 }
 
 $conn = getDbConnection();
@@ -22,8 +21,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    echo json_encode(['success' => false, 'message' => 'Mã giảm giá không tồn tại hoặc đã bị khóa']);
-    exit;
+    ResponseService::error('Mã giảm giá không tồn tại hoặc đã bị khóa', 404);
 }
 
 $voucher = $result->fetch_assoc();
@@ -32,20 +30,17 @@ $expire = new DateTime($voucher['expire_date']);
 
 // 1. Check expiry
 if ($now > $expire) {
-    echo json_encode(['success' => false, 'message' => 'Mã giảm giá đã hết hạn']);
-    exit;
+    ResponseService::error('Mã giảm giá đã hết hạn', 410);
 }
 
 // 2. Check usage limit
 if ($voucher['used_count'] >= $voucher['usage_limit']) {
-    echo json_encode(['success' => false, 'message' => 'Mã giảm giá đã hết lượt sử dụng']);
-    exit;
+    ResponseService::error('Mã giảm giá đã hết lượt sử dụng', 409);
 }
 
 // 3. Check min order value
 if ($orderValue < $voucher['min_order_value']) {
-    echo json_encode(['success' => false, 'message' => 'Đơn hàng chưa đủ điều kiện áp dụng mã này (Tối thiểu ' . number_format($voucher['min_order_value']) . 'đ)']);
-    exit;
+    ResponseService::error('Đơn hàng chưa đủ điều kiện áp dụng mã này (Tối thiểu ' . number_format($voucher['min_order_value']) . 'đ)', 422);
 }
 
 // Calculate discount
@@ -61,8 +56,7 @@ if ($discountAmount > $orderValue) {
     $discountAmount = $orderValue;
 }
 
-echo json_encode([
-    'success' => true, 
+ResponseService::success([
     'message' => 'Áp dụng mã thành công',
     'voucher' => [
         'code' => $voucher['code'],
@@ -71,6 +65,3 @@ echo json_encode([
         'discount_value' => $voucher['discount_value']
     ]
 ]);
-
-$conn->close();
-?>

@@ -1,8 +1,8 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/save_table_order.php
 require_once __DIR__ . '/auth_check_api.php';
 requireAdminPost();
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
 
@@ -12,8 +12,7 @@ $booking_id = isset($data['booking_id']) ? (int)$data['booking_id'] : 0;
 $items = isset($data['items']) && is_array($data['items']) ? $data['items'] : [];
 
 if ($table_id <= 0) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'ID bàn không hợp lệ'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'ID bàn không hợp lệ'], 400);
     exit;
 }
 
@@ -146,12 +145,11 @@ try {
     }
 
     $conn->commit();
-    echo json_encode(['success' => true, 'message' => 'Cập nhật order thành công'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => true, 'message' => 'Cập nhật order thành công']);
 } catch (Throwable $e) {
     $conn->rollback();
     error_log('[AdminSaveTableOrder] ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Không thể cập nhật order'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'Không thể cập nhật order'], 500);
 }
 
 $conn->close();

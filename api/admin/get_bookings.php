@@ -1,7 +1,7 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 ob_clean();
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
 date_default_timezone_set('Asia/Ho_Chi_Minh');
@@ -20,7 +20,7 @@ $status = isset($_GET['status']) ? trim($_GET['status']) : '';
 $date = isset($_GET['date']) ? trim($_GET['date']) : '';
 
 // Base Query
-$sql = "SELECT 
+$sql = "SELECT
             bookings.id,
             bookings.name,
             bookings.phone,
@@ -58,7 +58,7 @@ if (!empty($date)) {
 }
 
 // Count Total
-$countSql = str_replace("SELECT 
+$countSql = str_replace("SELECT
             bookings.id,
             bookings.name,
             bookings.phone,
@@ -98,7 +98,7 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 $conn->close();
 
-echo json_encode([
+ResponseService::json([
     'success'  => true,
     'bookings' => $bookings,
     'pagination' => [
@@ -107,4 +107,4 @@ echo json_encode([
         'limit' => $limit,
         'total_pages' => ceil($totalBookings / $limit)
     ]
-], JSON_UNESCAPED_UNICODE);
+]);

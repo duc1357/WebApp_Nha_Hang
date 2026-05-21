@@ -1,277 +1,246 @@
 <?php
-// CODE-07: Guard ob_clean() với ob_get_level()
-if (ob_get_level()) ob_clean();
-header('Content-Type: application/json; charset=utf-8');
-header('X-Content-Type-Options: nosniff');
+if (ob_get_level()) {
+    ob_clean();
+}
 
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
-require_once __DIR__ . '/../../api/services/csrf_service.php';
-require_once __DIR__ . '/../../api/services/rate_limit_service.php';
-
-// Validate CSRF
-CsrfService::validateRequest();
-
-$conn = getDbConnection();
-
-// Auto-detect JSON or POST
-$contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
-if (strpos($contentType, 'application/json') !== false) {
-    $data = json_decode(file_get_contents('php://input'), true);
-} else {
-    $data = $_POST;
-}
-
-$name   = $data['name']   ?? '';
-$phone  = $data['phone']  ?? '';
-$date   = $data['date']   ?? '';
-$time   = $data['time']   ?? '';
-$guests = $data['guests'] ?? '';
-$floor  = $data['floor']  ?? '';
-$table_id = $data['table_id'] ?? null;
-$has_preorder = !empty($data['has_preorder']);
-$items = $data['items'] ?? [];
-
-$bookingDateTime = DateTime::createFromFormat('Y-m-d H:i', (string)$date . ' ' . (string)$time, new DateTimeZone('Asia/Ho_Chi_Minh'));
-
-if (!$name || !$phone || !$date || !$time || !$guests) {
-    echo json_encode(['success' => false, 'message' => 'Dữ liệu không đầy đủ.']);
-    exit;
-}
-
-if (!preg_match('/^0[0-9]{9}$/', (string)$phone)) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'So dien thoai khong hop le.']);
-    exit;
-}
-
-if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$date) || !preg_match('/^\d{2}:\d{2}$/', (string)$time)) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'Ngay hoac gio khong hop le.']);
-    exit;
-}
-
-if (!$bookingDateTime || $bookingDateTime < new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'))) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'Khong the dat ban trong qua khu.']);
-    exit;
-}
-
-$hour = (int)$bookingDateTime->format('H');
-if ($hour < 8 || $hour > 22) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'Vui long chon gio trong khung 08:00 - 22:00.']);
-    exit;
-}
-
-if (!$table_id) {
-    echo json_encode(['success' => false, 'message' => 'Vui lòng chọn bàn!']);
-    exit;
-}
-
-$guestsInt = (int)$guests;
-$table_number_int = (int)$table_id; 
-
-if ($guestsInt < 1 || $guestsInt > 20) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'So khach khong hop le.']);
-    exit;
-}
-
-$user_id = $_SESSION['user_id'] ?? null;
-if (!$user_id) {
-    echo json_encode(['success' => false, 'message' => 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.']);
-    exit;
-}
-
-if (!RateLimitService::check('book_table_' . $user_id, 5, 60)) {
-    http_response_code(429);
-    echo json_encode(['success' => false, 'message' => 'Thao tác quá nhanh. Vui lòng đợi 1 phút.']);
-    exit;
-}
-
-// 1. Check duplicate & overlapping (+/- 2 hours)
-$conn->begin_transaction();
-
-$tableStmt = $conn->prepare("SELECT capacity FROM tables WHERE id = ? FOR UPDATE");
-$tableStmt->bind_param("i", $table_id);
-$tableStmt->execute();
-$tableRes = $tableStmt->get_result();
-$table = $tableRes->fetch_assoc();
-$tableStmt->close();
-
-if (!$table) {
-    $conn->rollback();
-    http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Ban khong ton tai.']);
-    $conn->close();
-    exit;
-}
-
-if ($guestsInt > (int)$table['capacity']) {
-    $conn->rollback();
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'So khach vuot qua suc chua cua ban.']);
-    $conn->close();
-    exit;
-}
-
-$checkSql = "
-    SELECT id, time 
-    FROM bookings 
-    WHERE table_id = ? 
-      AND date = ? 
-      AND status != 'cancelled'
-      AND ABS(TIMESTAMPDIFF(MINUTE, STR_TO_DATE(time, '%H:%i'), STR_TO_DATE(?, '%H:%i'))) <= 120
-    FOR UPDATE
-";
-$stmt = $conn->prepare($checkSql);
-$stmt->bind_param("iss", $table_id, $date, $time);
-$stmt->execute();
-$res = $stmt->get_result();
-
-if ($res->num_rows > 0) {
-    $conn->rollback();
-    echo json_encode(['success' => false, 'message' => 'Bàn này đã được đặt trong khoảng 2 tiếng gần thời gian bạn chọn. Vui lòng chọn bàn/thời gian khác.']);
-    $stmt->close();
-    $conn->close();
-    exit;
-}
-$stmt->close();
-
-// 2. Tính toán tiền nếu có Preorder
-$total_amount = 0;
-$deposit_amount = 0;
-$status = 'pending'; // Default
+require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/request_service.php';
+require_once ROOT_PATH . '/api/services/validation_service.php';
+require_once ROOT_PATH . '/api/services/csrf_service.php';
+require_once ROOT_PATH . '/api/services/rate_limit_service.php';
 
 try {
-    if ($has_preorder && !empty($items)) {
-        // PERF-01: Bulk query thay vì N+1 query trong vòng lặp
+    CsrfService::validateRequest();
+
+    $data = RequestService::input(false);
+    $name = ValidationService::requiredString($data, 'name', 'Du lieu khong day du.');
+    $phone = ValidationService::phone(
+        ValidationService::requiredString($data, 'phone', 'Du lieu khong day du.'),
+        'So dien thoai khong hop le.'
+    );
+    $date = ValidationService::date(
+        ValidationService::requiredString($data, 'date', 'Du lieu khong day du.'),
+        'Ngay hoac gio khong hop le.'
+    );
+    $time = ValidationService::time(
+        ValidationService::requiredString($data, 'time', 'Du lieu khong day du.'),
+        'Ngay hoac gio khong hop le.'
+    );
+    $guestsInt = ValidationService::intRange($data['guests'] ?? null, 1, 20, 'So khach khong hop le.');
+    $floor = trim((string)($data['floor'] ?? ''));
+    $tableId = ValidationService::intRange($data['table_id'] ?? null, 1, PHP_INT_MAX, 'Vui long chon ban!');
+    $hasPreorder = !empty($data['has_preorder']);
+    $items = isset($data['items']) && is_array($data['items']) ? $data['items'] : [];
+
+    $bookingDateTime = DateTime::createFromFormat('Y-m-d H:i', $date . ' ' . $time, new DateTimeZone('Asia/Ho_Chi_Minh'));
+    if (!$bookingDateTime || $bookingDateTime < new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'))) {
+        ResponseService::error('Khong the dat ban trong qua khu.', 422);
+    }
+
+    $hour = (int)$bookingDateTime->format('H');
+    if ($hour < 8 || $hour > 22) {
+        ResponseService::error('Vui long chon gio trong khung 08:00 - 22:00.', 422);
+    }
+
+    $userId = $_SESSION['user_id'] ?? null;
+    if (!$userId) {
+        ResponseService::error('Phien dang nhap het han. Vui long dang nhap lai.', 401);
+    }
+    $userId = (int)$userId;
+
+    if (!RateLimitService::check('book_table_' . $userId, 5, 60)) {
+        ResponseService::error('Thao tac qua nhanh. Vui long doi 1 phut.', 429);
+    }
+
+    $conn = getDbConnection();
+    $conn->begin_transaction();
+
+    $tableStmt = $conn->prepare("SELECT capacity FROM tables WHERE id = ? FOR UPDATE");
+    $tableStmt->bind_param("i", $tableId);
+    $tableStmt->execute();
+    $tableRes = $tableStmt->get_result();
+    $table = $tableRes->fetch_assoc();
+    $tableStmt->close();
+
+    if (!$table) {
+        $conn->rollback();
+        $conn->close();
+        ResponseService::error('Ban khong ton tai.', 404);
+    }
+
+    if ($guestsInt > (int)$table['capacity']) {
+        $conn->rollback();
+        $conn->close();
+        ResponseService::error('So khach vuot qua suc chua cua ban.', 422);
+    }
+
+    $checkSql = "
+        SELECT id, time
+        FROM bookings
+        WHERE table_id = ?
+          AND date = ?
+          AND status != 'cancelled'
+          AND ABS(TIMESTAMPDIFF(MINUTE, STR_TO_DATE(time, '%H:%i'), STR_TO_DATE(?, '%H:%i'))) <= 120
+        FOR UPDATE
+    ";
+    $stmt = $conn->prepare($checkSql);
+    $stmt->bind_param("iss", $tableId, $date, $time);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    if ($res->num_rows > 0) {
+        $stmt->close();
+        $conn->rollback();
+        $conn->close();
+        ResponseService::error('Ban nay da duoc dat trong khoang 2 tieng gan thoi gian ban chon. Vui long chon ban/thoi gian khac.', 409);
+    }
+    $stmt->close();
+
+    $totalAmount = 0;
+    $depositAmount = 0;
+    $status = 'pending';
+
+    if ($hasPreorder && empty($items)) {
+        $conn->rollback();
+        $conn->close();
+        ResponseService::error('Mon dat truoc khong hop le.', 422);
+    }
+
+    if ($hasPreorder && !empty($items)) {
         $ids = array_map('intval', array_column($items, 'menu_item_id'));
-        $ids = array_filter($ids); // loại bỏ id = 0
+        $ids = array_values(array_filter($ids));
 
         if (!empty($ids)) {
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
-            $types        = str_repeat('i', count($ids));
-            $priceStmt    = $conn->prepare("SELECT id, price FROM menu_items WHERE id IN ($placeholders) AND is_active = 1 AND deleted_at IS NULL");
+            $types = str_repeat('i', count($ids));
+            $priceStmt = $conn->prepare("SELECT id, price FROM menu_items WHERE id IN ($placeholders) AND is_active = 1 AND deleted_at IS NULL");
             $priceStmt->bind_param($types, ...$ids);
             $priceStmt->execute();
             $priceResult = $priceStmt->get_result();
 
-            // Build price map
             $priceMap = [];
             while ($row = $priceResult->fetch_assoc()) {
-                $priceMap[$row['id']] = (int) $row['price'];
+                $priceMap[(int)$row['id']] = (int)$row['price'];
             }
             $priceStmt->close();
 
-            // Apply real prices to items
             foreach ($items as &$item) {
-                $menu_item_id = (int) $item['menu_item_id'];
-                $qty          = max(0, (int) $item['quantity']);
-                if ($qty <= 0 || !isset($priceMap[$menu_item_id])) continue;
+                $menuItemId = (int)($item['menu_item_id'] ?? 0);
+                $qty = max(0, (int)($item['quantity'] ?? 0));
+                if ($qty <= 0 || !isset($priceMap[$menuItemId])) {
+                    continue;
+                }
 
-                $item['unit_price'] = $priceMap[$menu_item_id];
-                $total_amount      += $priceMap[$menu_item_id] * $qty;
+                $item['unit_price'] = $priceMap[$menuItemId];
+                $totalAmount += $priceMap[$menuItemId] * $qty;
             }
             unset($item);
         }
-        
-        // Cọc 30% cho tổng món ăn
-        $deposit_amount = ceil($total_amount * 0.3); 
+
+        if ($totalAmount <= 0) {
+            $conn->rollback();
+            $conn->close();
+            ResponseService::error('Mon dat truoc khong hop le.', 422);
+        }
+
+        $depositAmount = ceil($totalAmount * 0.3);
         $status = 'awaiting_payment';
     }
 
-    // 3. Insert Booking
-    $has_preorder_int = $has_preorder ? 1 : 0;
-    $payment_status = 'pending';
+    $hasPreorderInt = $hasPreorder ? 1 : 0;
+    $paymentStatus = 'pending';
+    $tableNumberInt = $tableId;
 
     $sql = "INSERT INTO bookings (name, phone, date, time, guests, floor, table_number, table_id, user_id, status, has_preorder, total_amount, deposit_amount, payment_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmtIns = $conn->prepare($sql);
-    $stmtIns->bind_param("ssssisiiisidds", $name, $phone, $date, $time, $guestsInt, $floor, $table_number_int, $table_id, $user_id, $status, $has_preorder_int, $total_amount, $deposit_amount, $payment_status);
+    $stmtIns->bind_param("ssssisiiisidds", $name, $phone, $date, $time, $guestsInt, $floor, $tableNumberInt, $tableId, $userId, $status, $hasPreorderInt, $totalAmount, $depositAmount, $paymentStatus);
     $stmtIns->execute();
-    $booking_id = $stmtIns->insert_id;
+    $bookingId = (int)$stmtIns->insert_id;
     $stmtIns->close();
 
-    // 4. Insert Booking Items
-    if ($has_preorder && !empty($items)) {
+    if ($hasPreorder && !empty($items)) {
         $itemStmt = $conn->prepare("INSERT INTO booking_items (booking_id, menu_item_id, quantity, unit_price) VALUES (?, ?, ?, ?)");
         foreach ($items as $item) {
-            if (!isset($item['unit_price'])) continue;
+            if (!isset($item['unit_price'])) {
+                continue;
+            }
             $qty = (int)$item['quantity'];
-            $menu_item_id = (int)$item['menu_item_id'];
-            $unit_price = (float)$item['unit_price'];
-            $itemStmt->bind_param("iiid", $booking_id, $menu_item_id, $qty, $unit_price);
+            $menuItemId = (int)$item['menu_item_id'];
+            $unitPrice = (float)$item['unit_price'];
+            $itemStmt->bind_param("iiid", $bookingId, $menuItemId, $qty, $unitPrice);
             $itemStmt->execute();
         }
         $itemStmt->close();
     }
-    
+
     $conn->commit();
 
-    // --- SEND EMAIL NOTIFICATION ---
-    require_once __DIR__ . '/../../api/services/email_service.php';
+    require_once ROOT_PATH . '/api/services/email_service.php';
     $uStmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
-    $uStmt->bind_param("i", $user_id);
+    $uStmt->bind_param("i", $userId);
     $uStmt->execute();
     $uRes = $uStmt->get_result();
     $emailSent = false;
     if ($row = $uRes->fetch_assoc()) {
         $email = $row['email'];
         if ($email) {
-            $subject = "[Dượng Bầu] Xác nhận yêu cầu đặt bàn";
-            $preorderText = $has_preorder ? "Bạn đã đặt món trước. Vui lòng thanh toán tiền cọc để xác nhận." : "";
-            $body = "<h2>Cảm ơn bạn đã yêu cầu đặt bàn!</h2>
-                        <p>Xin chào <strong>$name</strong>,</p>
-                        <p>Yêu cầu đặt bàn của bạn đã được ghi nhận:</p>
-                        <ul>
-                        <li><strong>Ngày:</strong> $date</li>
-                        <li><strong>Giờ:</strong> $time</li>
-                        <li><strong>Số khách:</strong> $guests</li>
-                        <li><strong>Bàn:</strong> $table_number_int (Sảnh $floor)</li>
-                        </ul>
-                        <p>$preorderText</p>
-                        <p>Trân trọng,<br>Nhà Hàng Cơm Quê Dượng Bầu</p>";
-            if (EmailService::send($email, $subject, $body)) {
-                $emailSent = true;
-            }
+            $subject = "[Duong Bau] Xac nhan yeu cau dat ban";
+            $preorderText = $hasPreorder ? "Ban da dat mon truoc. Vui long thanh toan tien coc de xac nhan." : "";
+            $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+            $safeDate = htmlspecialchars($date, ENT_QUOTES, 'UTF-8');
+            $safeTime = htmlspecialchars($time, ENT_QUOTES, 'UTF-8');
+            $safeFloor = htmlspecialchars($floor, ENT_QUOTES, 'UTF-8');
+            $safePreorderText = htmlspecialchars($preorderText, ENT_QUOTES, 'UTF-8');
+            $body = "<h2>Cam on ban da yeu cau dat ban!</h2>
+                     <p>Xin chao <strong>$safeName</strong>,</p>
+                     <p>Yeu cau dat ban cua ban da duoc ghi nhan:</p>
+                     <ul>
+                     <li><strong>Ngay:</strong> $safeDate</li>
+                     <li><strong>Gio:</strong> $safeTime</li>
+                     <li><strong>So khach:</strong> $guestsInt</li>
+                     <li><strong>Ban:</strong> $tableNumberInt (Sanh $safeFloor)</li>
+                     </ul>
+                     <p>$safePreorderText</p>
+                     <p>Tran trong,<br>Nha Hang Com Que Duong Bau</p>";
+            $emailSent = EmailService::send($email, $subject, $body);
         }
     }
     $uStmt->close();
 
-    // Return response
-    if ($has_preorder && $deposit_amount > 0) {
-        // Tạo mã QR bằng SePay API chuẩn theo file config (Or generic VietQR code)
-        // SePay free account often uses VietQR wrapper or their own dynamic QR
-        $payment_content = "BKG" . $booking_id; 
-        
-        $bank_account = defined('SEPAY_VA_ACCOUNT') ? SEPAY_VA_ACCOUNT : '';
-        $bank_id      = defined('SEPAY_BANK_NAME')  ? SEPAY_BANK_NAME  : 'MBBank';
-        $payUrl = "https://qr.sepay.vn/img?acc={$bank_account}&bank={$bank_id}&amount={$deposit_amount}&des={$payment_content}";
+    if ($hasPreorder && $depositAmount > 0) {
+        $paymentContent = "BKG" . $bookingId;
+        $bankAccount = defined('SEPAY_VA_ACCOUNT') ? SEPAY_VA_ACCOUNT : '';
+        $bankId = defined('SEPAY_BANK_NAME') ? SEPAY_BANK_NAME : 'MBBank';
+        $payUrl = "https://qr.sepay.vn/img?acc={$bankAccount}&bank={$bankId}&amount={$depositAmount}&des={$paymentContent}";
 
-        echo json_encode([
-            'success' => true,
+        $conn->close();
+        ResponseService::success([
             'require_payment' => true,
-            'booking_id' => $booking_id,
-            'deposit_amount' => $deposit_amount,
+            'booking_id' => $bookingId,
+            'deposit_amount' => $depositAmount,
             'payUrl' => $payUrl,
-            'message' => 'Vui lòng thanh toán tiền cọc ' . number_format($deposit_amount) . 'đ để xác nhận giữ chỗ.'
-        ]);
-    } else {
-        echo json_encode([
-            'success' => true,
-            'require_payment' => false,
-            'message' => 'Đặt bàn thành công! ' . ($emailSent ? 'Vui lòng kiểm tra email.' : '')
+            'message' => 'Vui long thanh toan tien coc ' . number_format($depositAmount) . 'd de xac nhan giu cho.',
         ]);
     }
 
-} catch (Exception $e) {
-    $conn->rollback();
+    $conn->close();
+    ResponseService::success([
+        'require_payment' => false,
+        'message' => 'Dat ban thanh cong! ' . ($emailSent ? 'Vui long kiem tra email.' : ''),
+    ]);
+} catch (InvalidArgumentException $e) {
+    ResponseService::error($e->getMessage(), $e->getCode() ?: 400);
+} catch (Throwable $e) {
+    if (isset($conn) && $conn instanceof mysqli) {
+        try {
+            $conn->rollback();
+            $conn->close();
+        } catch (Throwable $ignored) {
+        }
+    }
     error_log('[BookTable] Exception: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống. Vui lòng thử lại.']);
+    ResponseService::error('Loi he thong. Vui long thu lai.', 500);
 }
-
-$conn->close();
-?>

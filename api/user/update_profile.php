@@ -1,5 +1,5 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/api/base.php';

@@ -1,7 +1,7 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/get_table_status.php
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
 $conn = getDbConnection();
@@ -18,7 +18,7 @@ if ($res) {
         $tables[$row['id']] = $row;
         $tables[$row['id']]['booking_info'] = null;
         $tables[$row['id']]['source'] = 'none'; // Default
-        
+
         if ($row['status'] === 'occupied' && $date === date('Y-m-d')) {
              $tables[$row['id']]['booking_info'] = ['name' => 'Khách vãng lai', 'time' => 'Trực tiếp'];
              $tables[$row['id']]['source'] = 'manual';
@@ -27,8 +27,8 @@ if ($res) {
 }
 
 // 2. Get Confirmed Bookings for Date
-$sqlB = "SELECT id, table_id, name, time, guests, status 
-         FROM bookings 
+$sqlB = "SELECT id, table_id, name, time, guests, status
+         FROM bookings
          WHERE date = ? AND status = 'confirmed'";
 $stmt = $conn->prepare($sqlB);
 $stmt->bind_param("s", $date);
@@ -45,7 +45,7 @@ while ($row = $resB->fetch_assoc()) {
 }
 
 // 3. Get Active Orders
-$sqlO = "SELECT id, table_id, status FROM orders 
+$sqlO = "SELECT id, table_id, status FROM orders
          WHERE table_id IS NOT NULL AND table_id != '' AND status = 'pending' AND DATE(created_at) = ?";
 $stmtO = $conn->prepare($sqlO);
 $stmtO->bind_param("s", $date);
@@ -73,7 +73,7 @@ foreach ($tables as $t) {
     $floors[$floor][] = $t;
 }
 
-echo json_encode([
+ResponseService::json([
     'success' => true,
     'date' => $date,
     'floors' => $floors

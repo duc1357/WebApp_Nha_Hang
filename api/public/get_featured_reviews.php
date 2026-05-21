@@ -1,7 +1,7 @@
 <?php
 // api/public/get_featured_reviews.php
-header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '/../services/response_service.php';
 
 $conn = getDbConnection();
 
@@ -34,5 +34,5 @@ if (empty($reviews)) {
     ];
 }
 
-echo json_encode(['success' => true, 'reviews' => $reviews], JSON_UNESCAPED_UNICODE);
 $conn->close();
+ResponseService::success(['reviews' => $reviews]);

@@ -67,20 +67,30 @@ window.closeQrModal = function() {
  */
 window.startPaymentPolling = function(orderId) {
     if (paymentCheckInterval) clearInterval(paymentCheckInterval);
+    const safeOrderId = encodeURIComponent(orderId);
 
     paymentCheckInterval = setInterval(() => {
-        fetch(`api/payment/check_status.php?order_id=${orderId}`)
+        fetch(`api/payment/check_status.php?order_id=${safeOrderId}`)
             .then(res => res.json())
             .then(data => {
-                if (data.success && data.status === 'paid') {
+                if (!data.success && ['Unauthorized', 'Order not found'].includes(data.message)) {
                     clearInterval(paymentCheckInterval);
-                    showToast('Thanh toán thành công!', 'success');
+                    paymentCheckInterval = null;
+                    showToast(data.message || 'Khong the kiem tra thanh toan', 'error');
+                    return;
+                }
+
+                if (data.success && (data.is_paid || data.status === 'paid')) {
+                    clearInterval(paymentCheckInterval);
+                    paymentCheckInterval = null;
                     closeQrModal();
                     // Xóa giỏ hàng sau khi thanh toán
                     window.cart = [];
                     updateCart();
                     saveCartToStorage();
                     toggleCart();
+                    // Hiện popup cảm ơn
+                    setTimeout(() => showThankYouModal(), 400);
                 }
             })
             .catch(err => console.error('Polling error:', err));
@@ -94,13 +104,22 @@ window.startPaymentPolling = function(orderId) {
  */
 window.startBookingPaymentPolling = function(bookingId) {
     if (paymentCheckInterval) clearInterval(paymentCheckInterval);
+    const safeBookingId = encodeURIComponent(bookingId);
 
     paymentCheckInterval = setInterval(() => {
-        fetch(`api/payment/check_status_booking.php?booking_id=${bookingId}`)
+        fetch(`api/payment/check_status_booking.php?booking_id=${safeBookingId}`)
             .then(res => res.json())
             .then(data => {
-                if (data.success && (data.payment_status === 'partial' || data.payment_status === 'paid')) {
+                if (!data.success && ['Unauthorized', 'Booking not found'].includes(data.message)) {
                     clearInterval(paymentCheckInterval);
+                    paymentCheckInterval = null;
+                    showToast(data.message || 'Khong the kiem tra thanh toan', 'error');
+                    return;
+                }
+
+                if (data.success && (data.is_paid || data.payment_status === 'partial' || data.payment_status === 'paid')) {
+                    clearInterval(paymentCheckInterval);
+                    paymentCheckInterval = null;
                     showToast('Thanh toán cọc thành công! Đã giữ bàn.', 'success');
                     closeQrModal();
                     // Reset preorder nếu đang bật
@@ -135,3 +154,23 @@ document.addEventListener('click', function(event) {
         reviewModal.style.display = 'none';
     }
 });
+
+/* =========================================
+   THANK YOU MODAL
+   ========================================= */
+window.showThankYouModal = function() {
+    const modal = document.getElementById('thank-you-modal');
+    if (!modal) {
+        showToast('Thanh toán thành công!', 'success');
+        return;
+    }
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.add('show'), 10);
+};
+
+window.closeThankYouModal = function() {
+    const modal = document.getElementById('thank-you-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+};

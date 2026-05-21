@@ -1,81 +1,67 @@
 <?php
-// CODE-07: Guard ob_clean() với ob_get_level()
-if (ob_get_level()) ob_clean();
-header('Content-Type: application/json; charset=utf-8');
+if (ob_get_level()) {
+    ob_clean();
+}
 
 require_once __DIR__ . '/../../config/constants.php';
-require_once __DIR__ . '/../../config/db.php';
-require_once __DIR__ . '/../../api/services/OrderService.php';
+require_once ROOT_PATH . '/config/db.php';
+require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/OrderService.php';
+require_once ROOT_PATH . '/api/services/payment_state_service.php';
+require_once ROOT_PATH . '/api/services/logger_service.php';
 
-// [SECURITY FIX] Fail-Closed: Chặn tất cả request nếu token chưa cấu hình
+function logWebhookPayment(string $message, array $context = [], string $level = Logger::INFO): void {
+    Logger::payment($message, $context, $level);
+}
+
+function webhookAuthHeader(): string {
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    if ($authHeader === '' && function_exists('apache_request_headers')) {
+        $reqHeaders = apache_request_headers();
+        $authHeader = $reqHeaders['Authorization'] ?? '';
+    }
+    return $authHeader;
+}
+
 if (empty(SEPAY_WEBHOOK_TOKEN)) {
-    http_response_code(503);
-    echo json_encode(['success' => false, 'message' => 'Webhook not configured']);
-    file_put_contents(dirname(__DIR__, 2) . '/logs/webhook_sepay.log', date('Y-m-d H:i:s') . " - CRITICAL: SEPAY_WEBHOOK_TOKEN is empty! Set it in .env\n", FILE_APPEND);
-    exit;
+    logWebhookPayment('SePay webhook token is not configured', [], Logger::CRITICAL);
+    ResponseService::error('Webhook not configured', 503);
 }
 
-// Kiểm tra Authorization header từ SePay
-$authHeader = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
-if (empty($authHeader) && function_exists('apache_request_headers')) {
-    $reqHeaders = apache_request_headers();
-    $authHeader = isset($reqHeaders['Authorization']) ? $reqHeaders['Authorization'] : '';
+if (webhookAuthHeader() !== 'Apikey ' . SEPAY_WEBHOOK_TOKEN) {
+    Logger::security('Unauthorized SePay webhook attempt', [], Logger::WARNING);
+    ResponseService::error('Unauthorized Webhook!', 401);
 }
 
-// [SECURITY FIX] Fail-Closed: Luôn kiểm tra token (không có exception)
-if ($authHeader !== 'Apikey ' . SEPAY_WEBHOOK_TOKEN) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized Webhook!']);
-    file_put_contents(dirname(__DIR__, 2) . '/logs/webhook_sepay.log', date('Y-m-d H:i:s') . " - UNAUTHORIZED ACCESS ATTEMPT\n", FILE_APPEND);
-    exit;
-}
-
-// Đọc và log webhook data (chỉ log sau khi đã xác thực)
-$logFile = dirname(__DIR__, 2) . '/logs/webhook_sepay.log';
 $json = file_get_contents('php://input');
-// Đã bỏ log raw json ở đây
-
 $data = json_decode($json, true);
 
-if ($data) {
-    $logData = [
-        'gateway' => $data['gateway'] ?? 'unknown',
-        'accountNumber' => $data['accountNumber'] ?? '',
-        'subAccount' => $data['subAccount'] ?? '',
-        'transferAmount' => $data['transferAmount'] ?? 0,
-        'content' => $data['content'] ?? ''
-    ];
-    file_put_contents($logFile, date('Y-m-d H:i:s') . " - WEBHOOK RECEIVED: " . json_encode($logData) . PHP_EOL, FILE_APPEND);
-}
-if (!$data) {
-    echo json_encode(['success' => false, 'message' => 'Invalid JSON']);
-    exit;
+if (!is_array($data)) {
+    logWebhookPayment('SePay webhook rejected - invalid JSON', [], Logger::WARNING);
+    ResponseService::error('Invalid JSON', 400);
 }
 
-// SePay Data Structure
-// {
-//   "gateway": "MBBank",
-//   "transactionDate": "...",
-//   "accountNumber": "...",
-//   "subAccount": null,
-//   "transferAmount": 50000,
-//   "transferType": "in",
-//   "content": "DH123",
-//   ...
-// }
-
-$content = isset($data['content']) ? $data['content'] : '';
-$amount  = isset($data['transferAmount']) ? (int)$data['transferAmount'] : 0;
+$content = (string)($data['content'] ?? '');
+$amount = (int)($data['transferAmount'] ?? 0);
 $transferType = strtolower(trim((string)($data['transferType'] ?? '')));
 $accountNumber = trim((string)($data['accountNumber'] ?? ''));
 $subAccount = trim((string)($data['subAccount'] ?? ''));
 $gateway = trim((string)($data['gateway'] ?? ''));
 
+logWebhookPayment('SePay webhook received', [
+    'gateway' => $gateway !== '' ? $gateway : 'unknown',
+    'accountNumber' => $accountNumber,
+    'subAccount' => $subAccount,
+    'transferAmount' => $amount,
+    'content' => $content,
+]);
+
 if ($transferType !== 'in') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Unsupported transfer type']);
-    file_put_contents($logFile, date('Y-m-d H:i:s') . " - REJECTED TRANSFER TYPE: {$transferType}\n", FILE_APPEND);
-    exit;
+    logWebhookPayment('SePay webhook rejected - unsupported transfer type', [
+        'transferType' => $transferType,
+        'content' => $content,
+    ], Logger::WARNING);
+    ResponseService::error('Unsupported transfer type', 400);
 }
 
 if (defined('SEPAY_VA_ACCOUNT') && SEPAY_VA_ACCOUNT !== '') {
@@ -88,113 +74,168 @@ if (defined('SEPAY_VA_ACCOUNT') && SEPAY_VA_ACCOUNT !== '') {
     if (!$accountMatches && $expectedWithoutPrefix !== '' && $expectedWithoutPrefix !== $expectedAccount) {
         $accountMatches = str_contains($receivedAccountText, $expectedWithoutPrefix);
     }
-}
 
-if (defined('SEPAY_VA_ACCOUNT') && SEPAY_VA_ACCOUNT !== '' && !$accountMatches) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Unexpected account number']);
-    file_put_contents($logFile, date('Y-m-d H:i:s') . " - REJECTED ACCOUNT: {$accountNumber} | SUB: {$subAccount} | CONTENT: {$content}\n", FILE_APPEND);
-    exit;
+    if (!$accountMatches) {
+        logWebhookPayment('SePay webhook rejected - unexpected account', [
+            'accountNumber' => $accountNumber,
+            'subAccount' => $subAccount,
+            'content' => $content,
+        ], Logger::WARNING);
+        ResponseService::error('Unexpected account number', 400);
+    }
 }
 
 if (defined('SEPAY_BANK_NAME') && SEPAY_BANK_NAME !== '' && $gateway !== '' && strcasecmp($gateway, SEPAY_BANK_NAME) !== 0) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Unexpected gateway']);
-    file_put_contents($logFile, date('Y-m-d H:i:s') . " - REJECTED GATEWAY: {$gateway}\n", FILE_APPEND);
-    exit;
+    logWebhookPayment('SePay webhook rejected - unexpected gateway', [
+        'gateway' => $gateway,
+        'expected_gateway' => SEPAY_BANK_NAME,
+        'content' => $content,
+    ], Logger::WARNING);
+    ResponseService::error('Unexpected gateway', 400);
 }
 
-// Extract Order ID or Booking ID from content
 if (preg_match('/DH(\d+)/i', $content, $matches)) {
-    $order_id = $matches[1];
+    $orderId = (int)$matches[1];
     $conn = getDbConnection();
 
     $stmt = $conn->prepare("SELECT id, total_amount, final_total, status, voucher_code FROM orders WHERE id = ?");
-    $stmt->bind_param("i", $order_id);
+    $stmt->bind_param("i", $orderId);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $order = $result->fetch_assoc();
+    $order = $stmt->get_result()->fetch_assoc();
 
-    if ($order) {
-        $expectedAmount = isset($order['final_total']) ? (int)$order['final_total'] : (int)$order['total_amount'];
-        if ($amount < $expectedAmount) {
-             http_response_code(400); 
-             echo json_encode(['success' => false, 'message' => 'Insufficient payment amount']);
-             file_put_contents($logFile, date('Y-m-d H:i:s') . " - INSUFFICIENT: DH$order_id\n", FILE_APPEND);
-             exit;
-        }
-
-        if ($order['status'] === 'paid') {
-             http_response_code(200);
-             echo json_encode(['success' => true, 'message' => 'Order already paid']);
-             exit;
-        }
-
-        $conn->begin_transaction();
-        $markResult = OrderService::markOrderPaid($conn, (int)$order_id, 'bank_transfer');
-
-        if ($markResult['success']) {
-            $conn->commit();
-            http_response_code(200);
-            echo json_encode(['success' => true, 'message' => $markResult['message']]);
-        } else {
-            $conn->rollback();
-            http_response_code($markResult['message'] === 'Voucher is no longer valid' ? 409 : 500);
-            echo json_encode(['success' => false, 'message' => $markResult['message']]);
-        }
-    } else {
-        http_response_code(200); 
-        echo json_encode(['success' => false, 'message' => 'Order not found']);
+    if (!$order) {
+        $stmt->close();
+        $conn->close();
+        logWebhookPayment('SePay order payment ignored - order not found', ['order_id' => $orderId], Logger::WARNING);
+        ResponseService::error('Order not found', 200);
     }
+
+    $expectedAmount = isset($order['final_total']) ? (int)$order['final_total'] : (int)$order['total_amount'];
+    if ($amount < $expectedAmount) {
+        $stmt->close();
+        $conn->close();
+        logWebhookPayment('SePay order payment rejected - insufficient amount', [
+            'order_id' => $orderId,
+            'amount' => $amount,
+            'expected_amount' => $expectedAmount,
+        ], Logger::WARNING);
+        ResponseService::error('Insufficient payment amount', 400);
+    }
+
+    if (PaymentStateService::isPaidOrderStatus((string)$order['status'])) {
+        $stmt->close();
+        $conn->close();
+        logWebhookPayment('SePay order payment ignored - already paid', ['order_id' => $orderId]);
+        ResponseService::success(['message' => 'Order already paid']);
+    }
+
+    $conn->begin_transaction();
+    $markResult = OrderService::markOrderPaid($conn, $orderId, 'bank_transfer');
+
+    if ($markResult['success']) {
+        $conn->commit();
+        $stmt->close();
+        $conn->close();
+        logWebhookPayment('SePay order payment accepted', [
+            'order_id' => $orderId,
+            'amount' => $amount,
+        ]);
+        ResponseService::success(['message' => $markResult['message']]);
+    }
+
+    $conn->rollback();
     $stmt->close();
     $conn->close();
+    logWebhookPayment('SePay order payment failed while marking paid', [
+        'order_id' => $orderId,
+        'reason' => $markResult['message'],
+    ], Logger::ERROR);
+    ResponseService::error($markResult['message'], $markResult['message'] === 'Voucher is no longer valid' ? 409 : 500);
+}
 
-} elseif (preg_match('/BKG(\d+)/i', $content, $matches)) {
-    // Xử lý cọc Đặt bàn
-    $booking_id = $matches[1];
+if (preg_match('/BKG(\d+)/i', $content, $matches)) {
+    $bookingId = (int)$matches[1];
     $conn = getDbConnection();
 
-    $stmt = $conn->prepare("SELECT id, deposit_amount, payment_status FROM bookings WHERE id = ?");
-    $stmt->bind_param("i", $booking_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $booking = $result->fetch_assoc();
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare("SELECT id, deposit_amount, payment_status FROM bookings WHERE id = ? FOR UPDATE");
+        $stmt->bind_param("i", $bookingId);
+        $stmt->execute();
+        $booking = $stmt->get_result()->fetch_assoc();
 
-    if ($booking) {
+        if (!$booking) {
+            $conn->rollback();
+            $stmt->close();
+            $conn->close();
+            logWebhookPayment('SePay booking deposit ignored - booking not found', ['booking_id' => $bookingId], Logger::WARNING);
+            ResponseService::error('Booking not found', 200);
+        }
+
         $expectedAmount = (int)$booking['deposit_amount'];
-        
         if ($amount < $expectedAmount) {
-             http_response_code(400);
-             echo json_encode(['success' => false, 'message' => 'Insufficient deposit amount']);
-             file_put_contents($logFile, date('Y-m-d H:i:s') . " - INSUFFICIENT DEPOSIT: BKG$booking_id\n", FILE_APPEND);
-             exit;
+            $conn->rollback();
+            $stmt->close();
+            $conn->close();
+            logWebhookPayment('SePay booking deposit rejected - insufficient amount', [
+                'booking_id' => $bookingId,
+                'amount' => $amount,
+                'expected_amount' => $expectedAmount,
+            ], Logger::WARNING);
+            ResponseService::error('Insufficient deposit amount', 400);
         }
 
-        if ($booking['payment_status'] === 'partial' || $booking['payment_status'] === 'paid') {
-             http_response_code(200);
-             echo json_encode(['success' => true, 'message' => 'Booking deposit already paid']);
-             exit;
+        if (PaymentStateService::isPaidBookingPaymentStatus((string)$booking['payment_status'])) {
+            $conn->commit();
+            $stmt->close();
+            $conn->close();
+            logWebhookPayment('SePay booking deposit ignored - already paid', ['booking_id' => $bookingId]);
+            ResponseService::success(['message' => 'Booking deposit already paid']);
         }
 
-        $updateStmt = $conn->prepare("UPDATE bookings SET payment_status = 'partial', status = 'confirmed' WHERE id = ?");
-        $updateStmt->bind_param("i", $booking_id);
-        
-        if ($updateStmt->execute()) {
-            http_response_code(200);
-            echo json_encode(['success' => true, 'message' => 'Booking updated']);
-        } else {
-            error_log('[WebhookBooking] Update failed: ' . $conn->error);
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Update failed']);
+        $updateStmt = $conn->prepare("UPDATE bookings SET payment_status = 'partial', status = 'confirmed' WHERE id = ? AND payment_status = 'pending'");
+        $updateStmt->bind_param("i", $bookingId);
+
+        if ($updateStmt->execute() && $updateStmt->affected_rows > 0) {
+            $conn->commit();
+            $updateStmt->close();
+            $stmt->close();
+            $conn->close();
+            logWebhookPayment('SePay booking deposit accepted', [
+                'booking_id' => $bookingId,
+                'amount' => $amount,
+            ]);
+            ResponseService::success(['message' => 'Booking updated']);
         }
+
+        $conn->rollback();
         $updateStmt->close();
-    } else {
-        http_response_code(200); 
-        echo json_encode(['success' => false, 'message' => 'Booking not found']);
+        $stmt->close();
+        $conn->close();
+        logWebhookPayment('SePay booking deposit update skipped - state changed before update', [
+            'booking_id' => $bookingId,
+        ]);
+        ResponseService::success(['message' => 'Booking deposit already paid']);
+    } catch (Throwable $e) {
+        $conn->rollback();
+        if (isset($updateStmt) && $updateStmt instanceof mysqli_stmt) {
+            $updateStmt->close();
+        }
+        if (isset($stmt) && $stmt instanceof mysqli_stmt) {
+            $stmt->close();
+        }
+        $error = $e->getMessage();
+        $conn->close();
+        logWebhookPayment('SePay booking deposit update failed', [
+            'booking_id' => $bookingId,
+            'error' => $error,
+        ], Logger::ERROR);
+        ResponseService::error('Update failed', 500);
     }
-    $stmt->close();
-    $conn->close();
-
-} else {
-    echo json_encode(['success' => false, 'message' => 'No matching Code found in content']);
 }
+
+logWebhookPayment('SePay webhook ignored - no matching payment code', [
+    'content' => $content,
+    'amount' => $amount,
+], Logger::WARNING);
+ResponseService::error('No matching Code found in content', 200);

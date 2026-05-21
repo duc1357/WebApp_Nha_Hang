@@ -1,8 +1,7 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/get_orders.php
 require_once __DIR__ . '/auth_check_api.php';
-
-header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
 require_once __DIR__ . '/../../config/db.php';
@@ -16,7 +15,7 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $status = isset($_GET['status']) ? trim($_GET['status']) : '';
 
 // Base Query
-$sql = "SELECT 
+$sql = "SELECT
             o.id,
             o.total_amount,
             o.discount_amount,
@@ -98,7 +97,7 @@ if ($result) {
     }
 }
 
-echo json_encode([
+ResponseService::json([
     'success' => true,
     'orders'  => $orders,
     'pagination' => [

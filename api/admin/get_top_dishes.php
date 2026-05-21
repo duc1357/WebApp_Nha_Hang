@@ -1,8 +1,8 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/get_top_dishes.php
 if (ob_get_level()) ob_clean();
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/db.php';
 
 $conn = getDbConnection();
@@ -32,11 +32,11 @@ if ($result) {
     }
 }
 
-echo json_encode([
-    'success' => true, 
+ResponseService::json([
+    'success' => true,
     'labels' => $labels,
     'data' => $data,
     'details' => $top_dishes
-], JSON_UNESCAPED_UNICODE);
+]);
 
 $conn->close();

@@ -34,6 +34,60 @@ Full-stack restaurant ordering and booking system built with PHP, MySQL and vani
 3. Configure DB, mail, SePay and JWT secret
 4. Run migrations in `Database/migrations`
 
+For full deployment details, see [docs/deployment.md](docs/deployment.md).
+
+On Laragon/Windows, if `php` is not available in `PATH`, use the bundled PHP binary directly:
+
+```powershell
+C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe Database\migrate.php status
+C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe Database\migrate.php
+```
+
+## Local Verification
+
+Run the baseline checks before demoing or changing shared code:
+
+```powershell
+.\tests\run_php_lint.ps1
+.\tests\run_js_check.ps1
+.\tests\smoke\api_smoke.ps1
+```
+
+Before running HTTP smoke tests, open `http://restaurant.test` in a browser or run:
+
+```powershell
+Invoke-WebRequest http://restaurant.test -UseBasicParsing
+```
+
+If it cannot connect, start Laragon/Apache and confirm the virtual host points to this project root.
+
+If Windows blocks local `.ps1` files, run the same scripts with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tests\run_php_lint.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\run_js_check.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\api_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\security_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\payment_booking_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\admin_observability_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\page_load_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\browser_console_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\browser_workflow_smoke.ps1
+```
+
+The smoke test uses `http://restaurant.test` by default. Override it with:
+
+```powershell
+$env:RESTAURANT_BASE_URL = "http://restaurant.test"
+.\tests\smoke\api_smoke.ps1
+```
+
+Latest source-audit verification was captured on 2026-05-21. PHP lint, JavaScript syntax checks, API smoke, security smoke, payment/booking smoke, admin observability smoke, migration status, and HTTP page-load checks passed locally. See [TESTING_CHECKLIST.md](TESTING_CHECKLIST.md) and [docs/operations.md](docs/operations.md) for the recorded handoff details.
+
+`payment_booking_smoke.ps1` calls the SePay webhook over HTTP and requires local `.env` values for `SEPAY_WEBHOOK_TOKEN`, `SEPAY_BANK_NAME`, and `SEPAY_VA_ACCOUNT` to match the application configuration.
+`browser_console_smoke.ps1` launches local Chrome/Edge in headless mode. Set `CHROME_PATH` if neither browser is installed in a standard Windows location.
+`browser_workflow_smoke.ps1` uses the same browser path and checks non-destructive UI workflows such as cart toggle, booking drawer, auth tabs, and admin log controls.
+
 ## Demo Accounts
 
 Seed demo accounts locally with non-production credentials before recording or presenting:
@@ -44,6 +98,13 @@ Seed demo accounts locally with non-production credentials before recording or p
 | Customer | `customer.demo@example.test` | `ChangeMeDemo123!` | Use for checkout and booking flows. |
 
 Never reuse production passwords or customer data for demos.
+
+## Operations
+
+- Admin health and logs: `admin/logs.php`
+- Deployment guide: [docs/deployment.md](docs/deployment.md)
+- Operations guide: [docs/operations.md](docs/operations.md)
+- Testing checklist: [TESTING_CHECKLIST.md](TESTING_CHECKLIST.md)
 
 ## Screenshots
 
@@ -58,4 +119,4 @@ Recommended screenshot set for the portfolio:
 
 ## Known Limitations
 
-No automated test suite yet; payment requires SePay webhook configuration.
+Baseline lint and smoke scripts are available in `tests/`; payment still requires SePay webhook configuration for full external end-to-end verification. Browser console verification should be run manually before release when browser automation is unavailable.

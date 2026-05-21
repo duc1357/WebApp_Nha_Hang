@@ -224,4 +224,41 @@
                 window.location.href = 'index.html';
             });
     };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        window.renderUserHeader();
+    });
+
+    document.addEventListener('click', (event) => {
+        const copyButton = event.target.closest('[data-copy-target]');
+        if (copyButton && typeof window.copyToClipboard === 'function') {
+            window.copyToClipboard(copyButton.dataset.copyTarget);
+            return;
+        }
+
+        const action = event.target.closest('[data-action]')?.dataset.action;
+        if (!action) return;
+
+        if (action === 'toggle-cart' && typeof window.toggleCart === 'function') {
+            window.toggleCart();
+        }
+        if (action === 'check-voucher' && typeof window.checkVoucher === 'function') {
+            window.checkVoucher();
+        }
+        if (action === 'checkout' && typeof window.checkout === 'function') {
+            window.checkout();
+        }
+        if (action === 'close-qr-modal' && typeof window.closeQrModal === 'function') {
+            window.closeQrModal();
+        }
+        if (action === 'close-thank-you-modal' && typeof window.closeThankYouModal === 'function') {
+            window.closeThankYouModal();
+        }
+    });
+
+    document.addEventListener('change', (event) => {
+        if (event.target.matches('input[name="order_type"]') && typeof window.toggleOrderType === 'function') {
+            window.toggleOrderType();
+        }
+    });
 })();

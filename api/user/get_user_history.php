@@ -1,16 +1,14 @@
 <?php
 error_reporting(0);
 ini_set('display_errors', 0);
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
+require_once ROOT_PATH . '/api/services/response_service.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
+    ResponseService::error('Unauthorized', 401);
 }
 
 $conn = getDbConnection();
@@ -55,10 +53,10 @@ if ($userId) {
     $stmtC->close();
 
     // Get paginated orders
-    $oSql = "SELECT o.id, o.total_amount, o.discount_amount, o.final_total, o.payment_method, o.status, o.created_at, 
+    $oSql = "SELECT o.id, o.total_amount, o.discount_amount, o.final_total, o.payment_method, o.status, o.created_at,
             (SELECT COUNT(*) FROM reviews r WHERE r.order_id = o.id) as is_reviewed
-            FROM orders o 
-            WHERE o.user_id = ? 
+            FROM orders o
+            WHERE o.user_id = ?
             ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
     $stmt = $conn->prepare($oSql);
     $stmt->bind_param("iii", $userId, $limit, $orderOffset);
@@ -96,9 +94,9 @@ if ($userId) {
                     t.name AS table_name
              FROM bookings b
              LEFT JOIN tables t ON b.table_id = t.id
-             WHERE b.user_id = ? 
+             WHERE b.user_id = ?
              ORDER BY b.date DESC, b.time DESC LIMIT ? OFFSET ?";
-             
+
     $stmt = $conn->prepare($bSql);
     $stmt->bind_param("iii", $userId, $bookingLimit, $bookingOffset);
     $stmt->execute();
@@ -109,7 +107,9 @@ if ($userId) {
     $stmt->close();
 }
 
-echo json_encode([
+$conn->close();
+
+ResponseService::success([
     'orders' => $orders,
     'bookings' => $bookings,
     'pagination' => [
@@ -125,5 +125,3 @@ echo json_encode([
         'total_pages' => ceil($totalBookings / $bookingLimit)
     ]
 ]);
-
-$conn->close();

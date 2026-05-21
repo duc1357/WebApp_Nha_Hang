@@ -1,17 +1,15 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once ROOT_PATH . '/config/mail_config.php';
 require_once ROOT_PATH . '/lib/SimpleSMTP.php';
+require_once ROOT_PATH . '/api/services/response_service.php';
 require_once ROOT_PATH . '/api/services/csrf_service.php';
 require_once ROOT_PATH . '/api/services/rate_limit_service.php';
 
 // Rate limit: 3 lần / 60s để tránh OTP brute-force
 if (!RateLimitService::check('send_otp', 3, 60)) {
-    http_response_code(429);
-    echo json_encode(['success' => false, 'message' => 'Quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.']);
-    exit;
+    ResponseService::error('Quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.', 429);
 }
 
 // SEC-02: Validate CSRF
@@ -21,9 +19,7 @@ $data = json_decode(file_get_contents('php://input'), true);
 $email = trim($data['email'] ?? '');
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Email không hợp lệ']);
-    exit;
+    ResponseService::error('Email không hợp lệ', 400);
 }
 
 $conn = getDbConnection();
@@ -39,8 +35,7 @@ if ($res->num_rows === 0) {
     $stmt->close();
     $conn->close();
     // Vẫn trả success=true để attacker không biết email có tồn tại không
-    echo json_encode(['success' => true, 'message' => 'Nếu email tồn tại, chúng tôi đã gửi mã OTP. Vui lòng kiểm tra hộp thư.']);
-    exit;
+    ResponseService::success(['message' => 'Nếu email tồn tại, chúng tôi đã gửi mã OTP. Vui lòng kiểm tra hộp thư.']);
 }
 
 $user = $res->fetch_assoc();
@@ -69,11 +64,7 @@ $body = "
 ";
 
 if ($mailer->send($email, $subject, $body, MAIL_FROM_NAME)) {
-    echo json_encode(['success' => true, 'message' => 'Nếu email tồn tại, chúng tôi đã gửi mã OTP. Vui lòng kiểm tra hộp thư.']);
+    ResponseService::success(['message' => 'Nếu email tồn tại, chúng tôi đã gửi mã OTP. Vui lòng kiểm tra hộp thư.']);
 } else {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Lỗi gửi email. Vui lòng thử lại sau.'
-    ]);
+    ResponseService::error('Lỗi gửi email. Vui lòng thử lại sau.', 500);
 }

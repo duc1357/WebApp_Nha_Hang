@@ -1,5 +1,5 @@
 <?php
-header("Content-Type: application/json; charset=utf-8");
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 
@@ -15,5 +15,5 @@ if ($result->num_rows > 0) {
     }
 }
 
-echo json_encode($tables, JSON_UNESCAPED_UNICODE);
+ResponseService::json($tables);
 $conn->close();

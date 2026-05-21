@@ -19,6 +19,14 @@ define('SEPAY_BANK_NAME', env('SEPAY_BANK_NAME', 'MBBank'));
 
 define('JWT_SECRET', env('JWT_SECRET', ''));
 define('JWT_TTL_SECONDS', (int) env('JWT_TTL_SECONDS', 604800));
+define('ADMIN_EMAIL', env('ADMIN_EMAIL', env('MAIL_USER', 'nhahangcomqueduongbau@gmail.com')));
+
+// Redis Configuration
+define('REDIS_HOST', env('REDIS_HOST', '127.0.0.1'));
+define('REDIS_PORT', (int) env('REDIS_PORT', 6379));
+define('REDIS_PASS', env('REDIS_PASS', ''));
+define('REDIS_DB', (int) env('REDIS_DB', 0));
+define('REDIS_ENABLED', filter_var(env('REDIS_ENABLED', 'true'), FILTER_VALIDATE_BOOLEAN));
 
 if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
     require_once __DIR__ . '/session_config.php';

@@ -1,8 +1,8 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/get_revenue_stats.php
 ob_clean();
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/db.php';
 
 $conn = getDbConnection();
@@ -19,12 +19,12 @@ if ($type === 'month') {
         $labels[] = "Tháng $i";
     }
 
-    $sql = "SELECT MONTH(created_at) as month, SUM(CASE WHEN final_total > 0 THEN final_total ELSE total_amount END) as total 
-            FROM orders 
-            WHERE status = 'paid' 
+    $sql = "SELECT MONTH(created_at) as month, SUM(CASE WHEN final_total > 0 THEN final_total ELSE total_amount END) as total
+            FROM orders
+            WHERE status = 'paid'
             AND YEAR(created_at) = ?
             GROUP BY MONTH(created_at)";
-            
+
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $year);
     $stmt->execute();
@@ -35,7 +35,7 @@ if ($type === 'month') {
             $stats[(int)$row['month']] = (float)$row['total'];
         }
     }
-    
+
     $response = [
         'labels' => $labels,
         'data' => array_values($stats),
@@ -52,9 +52,9 @@ if ($type === 'month') {
     // Prepare result structure
     $stats = array_fill_keys($dates, 0);
 
-    $sql = "SELECT DATE(created_at) as date, SUM(CASE WHEN final_total > 0 THEN final_total ELSE total_amount END) as total 
-            FROM orders 
-            WHERE status = 'paid' 
+    $sql = "SELECT DATE(created_at) as date, SUM(CASE WHEN final_total > 0 THEN final_total ELSE total_amount END) as total
+            FROM orders
+            WHERE status = 'paid'
             AND created_at >= DATE(NOW() - INTERVAL 7 DAY)
             GROUP BY DATE(created_at)";
 
@@ -73,5 +73,5 @@ if ($type === 'month') {
     ];
 }
 
-echo json_encode(['success' => true, 'stats' => $response]);
+ResponseService::json(['success' => true, 'stats' => $response]);
 $conn->close();

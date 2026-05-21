@@ -1,7 +1,7 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/check_new_bookings.php
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
 $conn = getDbConnection();
@@ -19,7 +19,7 @@ $row = $result->fetch_assoc();
 $new_count = $row['new_count'];
 $latest_id = $row['latest_id'] ? $row['latest_id'] : $lastId;
 
-echo json_encode([
+ResponseService::json([
     'success' => true,
     'new_count' => $new_count,
     'latest_id' => $latest_id

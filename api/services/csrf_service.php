@@ -1,6 +1,7 @@
 <?php
 // api/services/csrf_service.php
 require_once __DIR__ . '/../../config/constants.php';
+require_once __DIR__ . '/response_service.php';
 
 class CsrfService {
 
@@ -58,10 +59,8 @@ class CsrfService {
                 . " | Has received token: " . (!empty($token) ? 'yes' : 'no')
                 . " | SERVER: " . json_encode(array_keys($_SERVER))
                 . " | HEADERS: " . json_encode($allHeaders));
-            
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'CSRF Validation Failed']);
-            exit;
+
+            ResponseService::error('CSRF Validation Failed', 403);
         }
 
         return true;

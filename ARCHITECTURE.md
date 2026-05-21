@@ -168,16 +168,66 @@ Khi có **>10 JS files** hoặc cần **tree-shaking** → Cân nhắc **Vite** 
 
 ---
 
+## ADR-006: Local Verification Harness
+
+**Date:** 2026-05  
+**Status:** Active
+
+### Decision
+The project uses lightweight PowerShell smoke scripts instead of adding PHPUnit, npm test tooling, or a browser test framework.
+
+### Rationale
+- Keeps the zero-dependency PHP approach.
+- Runs cleanly on Laragon/Windows.
+- Covers high-risk flows: syntax, public APIs, auth boundaries, payment/booking validation, and admin observability.
+
+### Commands
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tests\run_php_lint.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\run_js_check.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\api_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\security_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\payment_booking_smoke.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\admin_observability_smoke.ps1
+```
+
+### When to Revisit
+If the app gains more complex business rules or more contributors, add PHPUnit for service-level tests and Playwright for browser workflows.
+
+---
+
+## ADR-007: Admin Observability
+
+**Date:** 2026-05  
+**Status:** Active
+
+### Decision
+Admins use `admin/logs.php` plus authenticated APIs to inspect sanitized log entries and system health.
+
+### Rationale
+- Direct access to `logs/` remains blocked by `.htaccess`.
+- The UI gives enough operational context for demos and local incidents.
+- Sensitive keys are redacted before log entries are returned to the browser.
+
+### Health Checks
+- Database connectivity.
+- Log directory writability.
+- Rate-limit directory writability.
+- Migration table presence.
+- PHP version.
+
+---
+
 ## Hướng Phát Triển Dài Hạn
 
 ### Ngắn hạn (0-3 tháng)
-- [ ] Thêm `token_version` vào JWT payload để hỗ trợ revocation
-- [ ] Tích hợp Logger vào `api/auth/login.php` (user login)
-- [ ] Tích hợp Logger vào `api/payment/webhook.php` (mọi webhook event)
-- [ ] Chạy `php Database/migrate.php` để thêm `token_version` column
+- [x] Thêm `token_version` vào JWT payload để hỗ trợ revocation (`api/auth/login.php`)
+- [x] Tích hợp Logger vào `api/auth/login.php` (user login)
+- [x] Tích hợp Logger vào `api/payment/webhook.php` (mọi webhook event)
+- [x] Chạy `php Database/migrate.php` trên local/Laragon để đảm bảo có `token_version` column
 
 ### Trung hạn (3-6 tháng)
-- [ ] Thêm admin API endpoint để xem logs (`/admin/logs`)
+- [x] Thêm admin API endpoint để xem logs (`/admin/logs`)
 - [ ] Implement Email notification khi có CRITICAL log
 - [ ] Rate limit cho tất cả public API endpoints (không chỉ login)
 - [ ] Thêm payment_test.php vào test suite

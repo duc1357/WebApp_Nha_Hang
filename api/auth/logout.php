@@ -1,12 +1,10 @@
 <?php
 require_once __DIR__ . '/../../config/constants.php';
-require_once __DIR__ . '/../../api/services/csrf_service.php';
-header("Content-Type: application/json");
+require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/csrf_service.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Method Not Allowed"]);
-    exit;
+    ResponseService::error('Method Not Allowed', 405);
 }
 
 CsrfService::validateRequest();
@@ -27,8 +25,4 @@ if ($userId > 0) {
 session_unset();
 session_destroy();
 
-echo json_encode([
-    "success" => true,
-    "message" => "Đã đăng xuất"
-]);
-?>
+ResponseService::success(['message' => 'Da dang xuat']);

@@ -1,5 +1,5 @@
 <?php
-header("Content-Type: application/json");
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 require_once __DIR__ . '/../../config/db.php';
 
 $conn = getDbConnection();
@@ -28,7 +28,7 @@ if ($result && $result->num_rows > 0) {
     }
 }
 
-echo json_encode([
+ResponseService::json([
     "success" => true,
     "data" => $menu
 ]);

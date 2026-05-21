@@ -1,8 +1,8 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/checkout_table.php
 require_once __DIR__ . '/auth_check_api.php';
 requireAdminPost();
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
 require_once __DIR__ . '/../../api/services/OrderService.php';
@@ -13,8 +13,7 @@ $payment_method = isset($data['payment_method']) ? trim($data['payment_method'])
 $date = isset($data['date']) ? $data['date'] : date('Y-m-d');
 
 if ($table_id <= 0 || !in_array($payment_method, ['cash', 'bank_transfer'], true)) {
-    http_response_code(422);
-    echo json_encode(['success' => false, 'message' => 'Dữ liệu thanh toán không hợp lệ'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'Dữ liệu thanh toán không hợp lệ'], 422);
     exit;
 }
 
@@ -48,12 +47,11 @@ try {
     $completeB->close();
 
     $conn->commit();
-    echo json_encode(['success' => true, 'message' => 'Thanh toán và trả bàn thành công'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => true, 'message' => 'Thanh toán và trả bàn thành công']);
 } catch (Throwable $e) {
     $conn->rollback();
     error_log('[AdminCheckoutTable] ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Không thể thanh toán bàn'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'Không thể thanh toán bàn'], 500);
 }
 
 $conn->close();

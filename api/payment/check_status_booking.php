@@ -1,38 +1,42 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
-
 require_once __DIR__ . '/../../config/constants.php';
-require_once __DIR__ . '/../../config/db.php';
+require_once ROOT_PATH . '/config/db.php';
+require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/payment_state_service.php';
 
-$user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
-$booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
+$userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+$bookingId = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
 
-if (!$user_id) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+if (!$userId) {
+    ResponseService::error('Unauthorized', 401);
 }
 
-if (!$booking_id) {
-    echo json_encode(['success' => false, 'message' => 'Missing booking ID']);
-    exit;
+if ($bookingId <= 0) {
+    ResponseService::error('Missing booking ID', 422);
 }
 
 $conn = getDbConnection();
 $stmt = $conn->prepare("SELECT payment_status FROM bookings WHERE id = ? AND user_id = ?");
-$stmt->bind_param("ii", $booking_id, $user_id);
+$stmt->bind_param("ii", $bookingId, $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($row = $result->fetch_assoc()) {
-    echo json_encode([
-        'success' => true,
-        'payment_status' => $row['payment_status']
+    $paymentStatus = (string)$row['payment_status'];
+    if (!in_array($paymentStatus, PaymentStateService::bookingPaymentStatuses(), true)) {
+        $stmt->close();
+        $conn->close();
+        ResponseService::error('Invalid booking payment status', 500);
+    }
+
+    $stmt->close();
+    $conn->close();
+    ResponseService::success([
+        'payment_status' => $paymentStatus,
+        'is_paid' => PaymentStateService::isPaidBookingPaymentStatus($paymentStatus),
     ]);
-} else {
-    echo json_encode(['success' => false, 'message' => 'Booking not found']);
 }
 
 $stmt->close();
 $conn->close();
-?>
+ResponseService::error('Booking not found', 404);

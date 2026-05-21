@@ -1,7 +1,7 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/check_new_orders.php
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
 $conn = getDbConnection();
@@ -21,7 +21,7 @@ $new_count = $row['new_count'] ? (int)$row['new_count'] : 0;
 // If no new orders, latest_id might be null, so keep the old one or 0
 $latest_id = $row['latest_id'] ? (int)$row['latest_id'] : $last_id;
 
-echo json_encode([
+ResponseService::json([
     'success' => true,
     'new_count' => $new_count,
     'latest_id' => $latest_id

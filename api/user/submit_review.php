@@ -1,8 +1,8 @@
 <?php
 // api/user/submit_review.php
-header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
+require_once ROOT_PATH . '/api/services/response_service.php';
 require_once ROOT_PATH . '/api/services/csrf_service.php';
 require_once ROOT_PATH . '/api/services/rate_limit_service.php';
 
@@ -11,16 +11,12 @@ CsrfService::validateRequest();
 
 // Check Login
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập để đánh giá']);
-    exit;
+    ResponseService::error('Vui lòng đăng nhập để đánh giá', 401);
 }
 $userId = (int) $_SESSION['user_id'];
 
 if (!RateLimitService::check('submit_review_' . $userId, 3, 60)) {
-    http_response_code(429);
-    echo json_encode(['success' => false, 'message' => 'Thao tác quá nhanh. Vui lòng đợi 1 phút.']);
-    exit;
+    ResponseService::error('Thao tác quá nhanh. Vui lòng đợi 1 phút.', 429);
 }
 
 $data = json_decode(file_get_contents("php://input"), true);
@@ -29,15 +25,11 @@ $rating  = isset($data['rating'])   ? (int) $data['rating']   : 0;
 $comment = isset($data['comment'])  ? trim($data['comment'])  : '';
 
 if (!$orderId || !$rating) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Thiếu thông tin bắt buộc']);
-    exit;
+    ResponseService::error('Thiếu thông tin bắt buộc', 400);
 }
 
 if ($rating < 1 || $rating > 5) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Đánh giá phải từ 1 đến 5 sao']);
-    exit;
+    ResponseService::error('Đánh giá phải từ 1 đến 5 sao', 400);
 }
 
 // CODE-11: Chỉ tạo 1 DB connection (bỏ connection trùng lặp ở đầu file cũ)
@@ -51,21 +43,17 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Đơn hàng không tồn tại hoặc không thuộc về bạn']);
     $stmt->close();
     $conn->close();
-    exit;
+    ResponseService::error('Đơn hàng không tồn tại hoặc không thuộc về bạn', 403);
 }
 
 $order = $result->fetch_assoc();
 $stmt->close();
 
 if ($order['status'] !== 'paid') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Bạn chỉ có thể đánh giá đơn hàng đã hoàn thành (đã thanh toán)']);
     $conn->close();
-    exit;
+    ResponseService::error('Bạn chỉ có thể đánh giá đơn hàng đã hoàn thành (đã thanh toán)', 400);
 }
 
 // 2. Check if already reviewed
@@ -74,11 +62,9 @@ $stmtR = $conn->prepare($checkReview);
 $stmtR->bind_param("i", $orderId);
 $stmtR->execute();
 if ($stmtR->get_result()->num_rows > 0) {
-    http_response_code(409);
-    echo json_encode(['success' => false, 'message' => 'Bạn đã đánh giá đơn hàng này rồi']);
     $stmtR->close();
     $conn->close();
-    exit;
+    ResponseService::error('Bạn đã đánh giá đơn hàng này rồi', 409);
 }
 $stmtR->close();
 
@@ -88,13 +74,13 @@ $stmtI = $conn->prepare($insertSql);
 $stmtI->bind_param("iiis", $orderId, $userId, $rating, $comment);
 
 if ($stmtI->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Gửi đánh giá thành công! Cảm ơn bạn.']);
+    $stmtI->close();
+    $conn->close();
+    ResponseService::success(['message' => 'Gửi đánh giá thành công! Cảm ơn bạn.']);
 } else {
     // CODE-06: Không lộ $stmt->error
     error_log('[Review] Insert failed: ' . $stmtI->error);
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống. Vui lòng thử lại.']);
+    $stmtI->close();
+    $conn->close();
+    ResponseService::error('Lỗi hệ thống. Vui lòng thử lại.', 500);
 }
-
-$stmtI->close();
-$conn->close();

@@ -36,8 +36,8 @@
         .auth-wrapper {
             position: relative;
             z-index: 1;
-            width: 100%;
-            max-width: 900px;
+            width: min(100% - 32px, 980px);
+            max-width: none;
             padding: 16px;
         }
 
@@ -80,6 +80,7 @@
         .auth-card {
             background: #ffffff;
             border-radius: 14px;
+            max-width: 460px;
             box-shadow:
                 0 8px 24px rgba(0, 0, 0, 0.08),
                 0 1px 0 rgba(255, 255, 255, 0.7);
@@ -201,15 +202,27 @@
             color: #27ae60;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 767px) {
+            body.auth-page {
+                min-height: 100vh;
+            }
+
             .auth-wrapper {
-                max-width: 420px;
+                width: min(100% - 24px, 460px);
+                max-width: none;
+                padding-block: 24px;
             }
 
             .auth-brand {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: center;
                 gap: 6px;
+                text-align: center;
+            }
+
+            .auth-card {
+                width: 100%;
+                border-radius: 18px;
             }
         }
     </style>
@@ -246,8 +259,8 @@
 
                     <div class="form-group">
                         <label for="login-password">Mật khẩu</label>
-                        <input type="password" id="login-password" name="password" placeholder="••••••" minlength="4"
-                            required onkeydown="checkEnter(event, 'login')" />
+                        <input type="password" id="login-password" name="password" placeholder="••••••" minlength="8"
+                            required />
                     </div>
 
                     <div style="text-align: right; margin-bottom: 12px;">
@@ -255,7 +268,7 @@
                             style="font-size: 13px; color: #e67e22; text-decoration: none; font-weight: 500; transition: 0.2s;">Quên
                             mật khẩu?</a>
                     </div>
-                    <button type="button" class="btn-primary" id="btn-login" onclick="handleLogin()">Đăng nhập</button>
+                    <button type="button" class="btn-primary" id="btn-login">Đăng nhập</button>
                 </form>
                 <div id="login-message" class="form-message"></div>
             </div>
@@ -280,291 +293,20 @@
 
                     <div class="form-group">
                         <label for="reg-password">Mật khẩu</label>
-                        <input type="password" id="reg-password" name="password" minlength="4" required />
+                        <input type="password" id="reg-password" name="password" minlength="8"
+                            pattern="(?=.*[A-Z])(?=.*\d).{8,}"
+                            title="Mật khẩu cần tối thiểu 8 ký tự, có chữ hoa và số." required />
                     </div>
 
-                    <button type="button" class="btn-primary" id="btn-register" onclick="handleRegister()">Đăng
+                    <button type="button" class="btn-primary" id="btn-register">Đăng
                         ký</button>
                 </form>
                 <div id="register-message" class="form-message"></div>
             </div>
-
-            <!-- RESET PASSWORD -->
-            <div id="tab-reset" class="auth-pane">
-                <div style="text-align:center; margin-bottom:15px;">
-                    <h3 style="margin:0; font-size:18px; color:#2c3e50;">Khôi Phục Tài Khoản</h3>
-                    <p style="margin:5px 0 0; font-size:13px; color:#7f8c8d;">Xác minh thông tin để đặt lại mật khẩu</p>
-                </div>
-                <form id="reset-form" novalidate>
-                    <div class="form-group">
-                        <label for="reset-email">Email đã đăng ký</label>
-                        <input type="email" id="reset-email" required placeholder="Nhập email...">
-                    </div>
-                    <div class="form-group">
-                        <label for="reset-phone">Số điện thoại</label>
-                        <input type="tel" id="reset-phone" required placeholder="Nhập số điện thoại...">
-                    </div>
-                    <div class="form-group">
-                        <label for="reset-new-pass">Mật khẩu mới</label>
-                        <input type="password" id="reset-new-pass" required minlength="4"
-                            placeholder="Nhập mật khẩu mới">
-                    </div>
-                    <button type="button" class="btn-primary" id="btn-reset" onclick="handleReset()">Xác nhận đổi mật
-                        khẩu</button>
-                </form>
-                <div style="text-align: center; margin-top: 15px;">
-                    <a href="#" id="link-back-login"
-                        style="font-size: 13px; color: #7f8c8d; text-decoration:none;">&larr; Quay lại đăng nhập</a>
-                </div>
-                <div id="reset-message" class="form-message"></div>
-            </div>
         </div>
     </div>
 
-    <script>
-        // ===== GLOBAL HELPERS & INIT =====
-        let csrfToken = '';
-
-        // Auto-redirect if logged in
-        (function () {
-            const userJson = localStorage.getItem("restaurant_user");
-            if (userJson) {
-                window.location.href = "index.html";
-            }
-        })();
-
-        // CSRF & Fetch Wrapper
-        (async function initCsrf() {
-            try {
-                const res = await fetch('api/auth/get_csrf.php');
-                const data = await res.json();
-                if (data.success) {
-                    csrfToken = data.csrf_token;
-                    // console.log('CSRF Token loaded');
-                }
-            } catch (e) {
-                console.error('CSRF Init fail', e);
-            }
-        })();
-
-        const originalFetch = window.fetch;
-        window.fetch = async function (url, options = {}) {
-            if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method.toUpperCase())) {
-                if (!options.headers) options.headers = {};
-                if (options.headers instanceof Headers) {
-                    options.headers.append('X-CSRF-Token', csrfToken);
-                } else {
-                    options.headers['X-CSRF-Token'] = csrfToken;
-                }
-            }
-            return originalFetch(url, options);
-        };
-
-        // UI HELPERS
-        function setMessage(el, text, type) {
-            el.textContent = text || "";
-            el.classList.remove("error", "success");
-            if (type) el.classList.add(type);
-        }
-
-        function saveUser(data) {
-            localStorage.setItem("restaurant_user", JSON.stringify(data));
-        }
-
-        // ===== TAB SWITCHING =====
-        document.querySelectorAll(".auth-tab").forEach((btn) => {
-            btn.addEventListener("click", () => {
-                document.querySelectorAll(".auth-tab").forEach((b) => b.classList.remove("active"));
-                btn.classList.add("active");
-
-                const tab = btn.dataset.tab;
-                document.querySelectorAll(".auth-pane").forEach((p) => p.classList.remove("active"));
-                document.getElementById("tab-" + tab).classList.add("active");
-
-                // Clear messages
-                document.querySelectorAll(".form-message").forEach((m) => {
-                    m.textContent = "";
-                    m.classList.remove("error", "success");
-                });
-            });
-        });
-
-        // ===== LOGIN LOGIC =====
-        function handleLogin() {
-            const msg = document.getElementById("login-message");
-            const btn = document.getElementById("btn-login");
-            setMessage(msg, "", null);
-
-            const identifier = document.getElementById("login-identifier").value.trim();
-            const password = document.getElementById("login-password").value.trim();
-
-            if (!identifier || !password) {
-                setMessage(msg, "Vui lòng nhập đầy đủ thông tin.", "error");
-                return;
-            }
-
-            btn.disabled = true;
-            const oldText = btn.textContent;
-            btn.textContent = "Đang đăng nhập...";
-
-            fetch("api/auth/login.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ identifier, password }),
-            })
-                .then((res) => {
-                    return res.json();
-                })
-                .then((data) => {
-                    if (!data.success) {
-                        setMessage(msg, data.message || "Đăng nhập thất bại.", "error");
-                        return;
-                    }
-
-                    saveUser(data.user || { identifier });
-                    setMessage(msg, "Đăng nhập thành công! Đang chuyển trang...", "success");
-
-                    const role = data.user && data.user.role ? data.user.role : "user";
-                    setTimeout(() => {
-                        if (role === "admin") {
-                            window.location.href = "admin/dashboard.php";
-                        } else {
-                            window.location.href = "index.html";
-                        }
-                    }, 600);
-                })
-                .catch((err) => {
-                    console.error(err);
-                    setMessage(msg, "Lỗi kết nối máy chủ.", "error");
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.textContent = oldText;
-                });
-        }
-
-        // ===== REGISTER LOGIC =====
-        function handleRegister() {
-            const msg = document.getElementById("register-message");
-            const btn = document.getElementById("btn-register");
-            setMessage(msg, "", null);
-
-            const user = {
-                name: document.getElementById("reg-name").value.trim(),
-                phone: document.getElementById("reg-phone").value.trim(),
-                email: document.getElementById("reg-email").value.trim(),
-                password: document.getElementById("reg-password").value.trim(),
-            };
-
-            if (!user.name || !user.phone || !user.password) {
-                setMessage(msg, "Vui lòng điền đủ Họ tên, SĐT và Mật khẩu.", "error");
-                return;
-            }
-
-            btn.disabled = true;
-            const oldText = btn.textContent;
-            btn.textContent = "Đang đăng ký...";
-
-            fetch("api/auth/register.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(user),
-            })
-                .then((res) => res.json())
-                .then((data) => {
-                    if (!data.success) {
-                        setMessage(msg, data.message || "Đăng ký thất bại.", "error");
-                        return;
-                    }
-                    setMessage(msg, "Đăng ký thành công! Bạn hãy chuyển sang tab Đăng nhập.", "success");
-                })
-                .catch(() => {
-                    setMessage(msg, "Lỗi kết nối máy chủ!", "error");
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.textContent = oldText;
-                });
-        }
-
-        // ===== RESET PASSWORD LOGIC =====
-        function handleReset() {
-            const msg = document.getElementById("reset-message");
-            const btn = document.getElementById("btn-reset");
-            setMessage(msg, "", null);
-
-            const email = document.getElementById("reset-email").value.trim();
-            const phone = document.getElementById("reset-phone").value.trim();
-            const newPass = document.getElementById("reset-new-pass").value.trim();
-
-            if (!email || !phone || !newPass) {
-                setMessage(msg, "Vui lòng nhập đủ thông tin.", "error");
-                return;
-            }
-
-            btn.disabled = true;
-            const oldText = btn.textContent;
-            btn.textContent = "Đang xử lý...";
-
-            fetch("api/auth/reset_password.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, phone, new_password: newPass })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        setMessage(msg, data.message, "success");
-                        setTimeout(() => {
-                            document.getElementById("link-back-login").click();
-                            setMessage(document.getElementById("login-message"), "Đổi mật khẩu thành công! Hãy đăng nhập.", "success");
-                        }, 2000);
-                    } else {
-                        setMessage(msg, data.message, "error");
-                    }
-                })
-                .catch(() => {
-                    setMessage(msg, "Lỗi kết nối server.", "error");
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.textContent = oldText;
-                });
-        }
-
-        // ===== ENTER KEY HANDLER =====
-        function checkEnter(event, type) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                if (type === 'login') handleLogin();
-                if (type === 'register') handleRegister();
-                if (type === 'reset') handleReset();
-            }
-        }
-
-        // ===== EVENT BINDINGS (Legacy / Forgot Pass) =====
-        const linkForgot = document.getElementById("link-forgot");
-        const linkBack = document.getElementById("link-back-login");
-        const tabsContainer = document.querySelector(".auth-tabs");
-        const tabReset = document.getElementById("tab-reset");
-
-        if (linkForgot) {
-            linkForgot.addEventListener("click", (e) => {
-                e.preventDefault();
-                tabsContainer.style.display = "none";
-                document.querySelectorAll(".auth-pane").forEach(p => p.classList.remove("active"));
-                tabReset.classList.add("active");
-            });
-        }
-
-        if (linkBack) {
-            linkBack.addEventListener("click", (e) => {
-                e.preventDefault();
-                tabsContainer.style.display = "flex";
-                document.querySelector('[data-tab="login"]').click();
-            });
-        }
-    </script>
+    <script src="js/login.js" defer></script>
 </body>
 
 </html>

@@ -1,8 +1,8 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/cancel_table_order.php
 require_once __DIR__ . '/auth_check_api.php';
 requireAdminPost();
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
 $conn = getDbConnection();
@@ -11,7 +11,7 @@ $data = json_decode(file_get_contents('php://input'), true);
 $table_id = isset($data['table_id']) ? (int)$data['table_id'] : 0;
 
 if ($table_id <= 0) {
-    echo json_encode(['success' => false, 'message' => 'Lỗi ID bàn.']);
+    ResponseService::json(['success' => false, 'message' => 'Lỗi ID bàn.']);
     exit;
 }
 
@@ -25,7 +25,7 @@ $resOrder = $stmt->get_result();
 if ($resOrder->num_rows > 0) {
     $order = $resOrder->fetch_assoc();
     $order_id = $order['id'];
-    
+
     // Hủy order
     $updOrder = $conn->prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?");
     $updOrder->bind_param("i", $order_id);
@@ -46,6 +46,6 @@ $cancelB->bind_param("is", $table_id, $date);
 $cancelB->execute();
 $cancelB->close();
 
-echo json_encode(['success' => true, 'message' => 'Hủy order và chuyển bàn về trống thành công.']);
+ResponseService::json(['success' => true, 'message' => 'Hủy order và chuyển bàn về trống thành công.']);
 $conn->close();
 ?>

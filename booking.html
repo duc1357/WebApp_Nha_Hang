@@ -49,7 +49,7 @@
 
         <nav class="main-nav">
             <a href="index.html" class="nav-brand">
-                <img src="photo/favicon.png" alt="Nhà Hàng Cơm Quê Dượng Bầu" style="height: 48px; width: 48px; object-fit: cover; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <img src="photo/favicon.png" alt="Nhà Hàng Cơm Quê Dượng Bầu" class="nav-logo-img">
             </a>
             <a href="index.html#menu">Thực Đơn</a>
             <a href="booking.html" class="active">Đặt Bàn</a>
@@ -76,11 +76,11 @@
                         <div class="booking-filter">
                             <div class="filter-group">
                                 <label for="date">Ngày đặt</label>
-                                <input type="date" id="date" onchange="loadTables()">
+                                <input type="date" id="date">
                             </div>
                             <div class="filter-group">
                                 <label for="time">Giờ</label>
-                                <input type="time" id="time" onchange="loadTables()">
+                                <input type="time" id="time" lang="en-GB" min="00:00" max="23:59" step="60">
                             </div>
                             <div class="filter-group">
                                 <label for="guests">Số khách</label>
@@ -109,7 +109,7 @@
                             <h3>Xác Nhận Đặt Bàn</h3>
                             <p id="selection-summary" class="summary-text">Vui lòng chọn bàn...</p>
 
-                            <form onsubmit="submitBooking(); return false;">
+                            <form id="booking-form">
                                 <input type="hidden" id="selected-floor" aria-hidden="true">
                                 <input type="hidden" id="selected-table" aria-hidden="true">
 
@@ -127,28 +127,35 @@
                                 <!-- Nút bật tắt chọn món trước -->
                                 <fieldset style="border: none; padding: 0; margin-bottom: 15px;">
                                     <legend style="display: none;">Tùy chọn đặt món</legend>
-                                    <div class="preorder-toggle-group" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; border: 1px solid #eee;">
-                                        <label for="toggle-preorder" style="display: flex; align-items: center; cursor: pointer; font-weight: bold; color: #2c3e50; min-height: 44px;">
-                                            <input type="checkbox" id="toggle-preorder" style="width: 24px; height: 24px; margin-right: 10px;" onchange="togglePreorderSection()">
+                                    <div class="preorder-toggle-group booking-preorder-toggle">
+                                        <label for="toggle-preorder" class="booking-preorder-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; margin-bottom: 10px;">
+                                            <input type="checkbox" id="toggle-preorder" class="booking-preorder-checkbox">
                                             Kèm theo Đặt Món Trước (Thanh toán cọc 30%)
                                         </label>
                                     
-                                    <div id="preorder-section" style="display: none; margin-top: 15px;">
-                                        <h4 style="margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Thực đơn & Giỏ hàng</h4>
-                                        <div id="booking-menu-list" style="max-height: 200px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 15px;">
-                                            <p class="text-muted">Đang tải thực đơn...</p>
-                                        </div>
-                                        
-                                        <div style="background: #eef2f3; padding: 10px; border-radius: 5px;">
-                                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                                <span>Tổng tiền món ăn:</span>
-                                                <strong id="preorder-total">0đ</strong>
+                                        <div id="preorder-section" class="booking-preorder-section" style="display: none; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; padding: 15px; margin-top: 10px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                                <h4 style="margin: 0; font-size: 1rem; color: #2c3e50;">Giỏ Hàng Đặt Trước</h4>
+                                                <button type="button" class="btn-select-preorder" data-action="open-preorder-drawer" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--primary); color: #fff; background: var(--primary); cursor: pointer; font-weight: bold; transition: all 0.3s; min-height: auto; display: flex; align-items: center; gap: 4px;">
+                                                    🍳 Chọn món ăn
+                                                </button>
                                             </div>
-                                            <div style="display: flex; justify-content: space-between; color: #d35400;">
-                                                <span>Số tiền cần cọc (30%):</span>
-                                                <strong id="preorder-deposit">0đ</strong>
+                                            
+                                            <!-- Danh sách tóm tắt các món đã chọn trong form -->
+                                            <div id="booking-selected-summary-list" style="margin-bottom: 12px; max-height: 150px; overflow-y: auto;">
+                                                <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Chưa chọn món nào. Nhấn nút "Chọn món ăn" để bắt đầu.</p>
                                             </div>
-                                        </div>
+                                            
+                                            <div style="background: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid #f1f3f5; font-size: 0.9rem;">
+                                                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                                    <span>Tổng tiền món:</span>
+                                                    <strong id="preorder-total">0đ</strong>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between; color: #d35400; font-weight: bold;">
+                                                    <span>Tiền cọc (30%):</span>
+                                                    <strong id="preorder-deposit">0đ</strong>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </fieldset>
@@ -169,10 +176,10 @@
                 <p>Vui lòng dùng App Ngân Hàng hoặc Ví Điện Tử quét mã QR dưới đây:</p>
                 
                 <div class="qr-container">
-                    <img id="qr-code-img" src="" alt="Mã QR Thanh Toán" style="max-width:250px; background:#fff; padding:10px; border-radius:10px; margin:15px 0;">
+                    <img id="qr-code-img" class="booking-qr-image" src="" alt="Mã QR Thanh Toán">
                 </div>
 
-                <div class="payment-details" style="background:var(--light-bg); padding:15px; border-radius:8px; margin-bottom:15px;">
+                <div class="payment-details booking-payment-details">
                     <p style="margin-bottom:5px;"><strong>Số tiền cọc: </strong><span id="qr-amount" style="color:var(--primary); font-size:1.2rem; font-weight:bold;">0đ</span></p>
                     <p><strong>Nội dung: </strong><span id="qr-content" style="font-family:monospace; font-size:1.1rem; background:#fff; padding:2px 5px; border:1px solid #ccc; border-radius:3px;">HD123</span></p>
                 </div>
@@ -181,9 +188,41 @@
                     <i class="fas fa-spinner fa-spin"></i> Hệ thống đang chờ thanh toán...
                 </p>
                 
-                <button onclick="closeQrModal()" style="width: 100%; background: #e74c3c; color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 5px;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'" style="min-height: 44px;">
+                <button type="button" data-action="close-qr-modal" style="width: 100%; background: #e74c3c; color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 5px; min-height: 44px;">
                     ✖ Đóng / Hủy Thanh Toán
                 </button>
+            </div>
+        </div>
+
+        <!-- Preorder Drawer (Slide-out panel) -->
+        <div id="preorder-drawer" class="drawer-overlay hidden">
+            <div class="drawer-content">
+                <div class="drawer-header">
+                    <h3>Thực Đơn Đặt Trước</h3>
+                    <button type="button" class="drawer-close-btn" data-action="close-preorder-drawer">✖</button>
+                </div>
+                
+                <div class="drawer-search-container">
+                    <input type="text" id="drawer-search" placeholder="Tìm kiếm món ăn ngon...">
+                </div>
+
+                <div id="drawer-menu-list" class="drawer-menu-list">
+                    <p class="text-muted text-center" style="padding: 20px;">Đang tải thực đơn...</p>
+                </div>
+
+                <div class="drawer-footer">
+                    <div class="drawer-footer-summary">
+                        <div class="summary-line">
+                            <span>Đã chọn:</span>
+                            <strong id="drawer-selected-count">0 món</strong>
+                        </div>
+                        <div class="summary-line">
+                            <span>Tổng tiền:</span>
+                            <strong id="drawer-total-amount" class="text-primary" style="color: var(--primary); font-size: 1.25rem;">0đ</strong>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-confirm-drawer" data-action="close-preorder-drawer">Xác Nhận & Quay Lại</button>
+                </div>
             </div>
         </div>
 
@@ -212,38 +251,6 @@
     <script src="js/menu.js?v=3.0"></script>
     <script src="js/payment.js?v=3.0"></script>
     <script src="js/booking.js?v=3.0"></script>
-
-    <script>
-        // Init logic specifically for this page
-        document.addEventListener('DOMContentLoaded', () => {
-            // Render Header User Info
-            renderUserHeader();
-
-            // Auto fill form if user exists
-            const user = getCurrentUser();
-            if (user) {
-                document.getElementById('name').value = user.name || '';
-                document.getElementById('phone').value = user.phone || '';
-            }
-
-            // Set default date/time safely
-            const now = new Date();
-            const dateInput = document.getElementById('date');
-            const timeInput = document.getElementById('time');
-
-            if (dateInput) dateInput.valueAsDate = now;
-            if (timeInput) {
-                // Set to next hour for convenience
-                now.setHours(now.getHours() + 1);
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = '00';
-                timeInput.value = `${hours}:${minutes}`;
-            }
-
-            // Load tables
-            loadTables();
-        });
-    </script>
 </body>
 
 </html>

@@ -2,11 +2,12 @@
 // api/services/OrderService.php
 
 class OrderService {
+    private const MAX_ITEM_QUANTITY = 99;
 
     /**
      * Tìm ID bàn bằng tên bàn hoặc ID.
      * Khớp chính xác (exact match) thay vì dùng LIKE để tránh sai sót.
-     * 
+     *
      * @param mysqli $conn
      * @param string|int|null $table_input
      * @return int|null
@@ -61,7 +62,7 @@ class OrderService {
     /**
      * Tính toán tổng tiền của đơn hàng từ Database để tránh Client truyền dữ liệu ảo.
      * Tránh lỗi N+1 Query bằng cách dùng WHERE id IN (...)
-     * 
+     *
      * @param mysqli $conn
      * @param array $items
      * @return array Bảng tổng hợp ['total_calculated' => int, 'valid_items' => array]
@@ -74,9 +75,10 @@ class OrderService {
         // Tạo mảng nhóm số lượng theo ID
         $itemQtyMap = [];
         foreach ($items as $item) {
-            $id = isset($item['id']) ? (int)$item['id'] : 0;
+            $id = isset($item['id']) ? (int)$item['id'] : (int)($item['menu_item_id'] ?? 0);
             $qty = isset($item['quantity']) ? (int)$item['quantity'] : 0;
             if ($id > 0 && $qty > 0) {
+                $qty = min($qty, self::MAX_ITEM_QUANTITY);
                 if (!isset($itemQtyMap[$id])) {
                     $itemQtyMap[$id] = 0;
                 }
@@ -123,7 +125,7 @@ class OrderService {
 
     /**
      * Kiểm tra và áp dụng Voucher
-     * 
+     *
      * @param mysqli $conn
      * @param string $voucher_code
      * @param int|float $total_calculated
@@ -142,8 +144,8 @@ class OrderService {
             ];
         }
 
-        $voucher_code = strtoupper(trim($voucher_code));
-        
+        $voucher_code = strtoupper(trim((string)$voucher_code));
+
         $vSql = "SELECT code, discount_type, discount_value, min_order_value, expire_date, usage_limit, used_count
                  FROM vouchers
                  WHERE code = ? AND is_active = 1";
@@ -156,15 +158,16 @@ class OrderService {
             $now = new DateTime();
             $expire = new DateTime($vRow['expire_date']);
 
-            if ($now <= $expire && 
-                $vRow['used_count'] < $vRow['usage_limit'] && 
+            if ($now <= $expire &&
+                $vRow['used_count'] < $vRow['usage_limit'] &&
                 $total_calculated >= $vRow['min_order_value']) {
-                
+
                 // Tính toán giảm giá
                 if ($vRow['discount_type'] === 'percent') {
-                    $discount_amount = ($total_calculated * $vRow['discount_value']) / 100;
+                    $percent = max(0, min(100, (float)$vRow['discount_value']));
+                    $discount_amount = ($total_calculated * $percent) / 100;
                 } else {
-                    $discount_amount = $vRow['discount_value'];
+                    $discount_amount = max(0, (float)$vRow['discount_value']);
                 }
 
                 // Capping giảm giá tối đa bằng với tổng đơn
@@ -172,7 +175,7 @@ class OrderService {
                     $discount_amount = $total_calculated;
                 }
 
-                $final_total = $total_calculated - $discount_amount;
+                $final_total = max(0, $total_calculated - $discount_amount);
                 $applied_voucher = $voucher_code;
 
                 // Increment usage only after a confirmed payment/webhook.

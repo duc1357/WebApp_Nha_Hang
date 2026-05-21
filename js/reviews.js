@@ -38,12 +38,11 @@ window.submitReview = function() {
         btn.disabled = true;
     }
 
-    fetch('api/user/submit_review.php', {
+    fetchJson('api/user/submit_review.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId, rating, comment })
     })
-    .then(res => res.json())
     .then(data => {
         if (data.success) {
             showToast(data.message, 'success');
@@ -68,15 +67,14 @@ window.loadFeaturedReviews = function() {
     const grid = document.getElementById('featured-reviews-grid');
     if (!grid) return;
 
-    fetch('api/public/get_featured_reviews.php')
-        .then(res => res.json())
+    renderState(grid, 'Đang tải đánh giá...', 'empty');
+
+    fetchJson('api/public/get_featured_reviews.php')
         .then(data => {
             grid.innerHTML = '';
 
             if (!data.reviews?.length) {
-                const empty = document.createElement('p');
-                empty.textContent = 'Chưa có đánh giá nào.';
-                grid.appendChild(empty);
+                renderEmptyState(grid, 'Chưa có đánh giá nào.');
                 return;
             }
 
@@ -110,10 +108,7 @@ window.loadFeaturedReviews = function() {
         })
         .catch(err => {
             console.error('Lỗi tải đánh giá:', err);
-            grid.innerHTML = '';
-            const error = document.createElement('p');
-            error.textContent = 'Không thể tải đánh giá.';
-            grid.appendChild(error);
+            renderErrorState(grid, 'Không thể tải đánh giá.');
         });
 };
 

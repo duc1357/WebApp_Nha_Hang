@@ -19,9 +19,9 @@ fputcsv($output, ['Mã đơn hàng', 'Khách hàng', 'Số điện thoại', 'T�
 $conn = getDbConnection();
 
 // Get all orders
-$sql = "SELECT o.id, u.name as customer_name, u.phone as customer_phone, o.total_amount, o.discount_amount, o.final_total, o.voucher_code, o.status, o.created_at 
-        FROM orders o 
-        LEFT JOIN users u ON o.user_id = u.id 
+$sql = "SELECT o.id, u.name as customer_name, u.phone as customer_phone, o.total_amount, o.discount_amount, o.final_total, o.voucher_code, o.status, o.created_at
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
         ORDER BY o.created_at DESC";
 $result = $conn->query($sql);
 

@@ -1,6 +1,6 @@
-﻿<?php
+<?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/get_vouchers.php
-header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/auth_check_api.php'; // [2.3] Standardized
 require_once ROOT_PATH . '/config/db.php';
 
@@ -17,7 +17,6 @@ if ($result) {
     }
 }
 
-echo json_encode(['success' => true, 'vouchers' => $vouchers]);
+ResponseService::json(['success' => true, 'vouchers' => $vouchers]);
 $conn->close();
 ?>
-

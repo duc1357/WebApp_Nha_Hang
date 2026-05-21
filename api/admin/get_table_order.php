@@ -1,7 +1,7 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/get_table_order.php
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
 
@@ -9,8 +9,7 @@ $conn = getDbConnection();
 $table_id = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
 if ($table_id <= 0) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'ID ban khong hop le.'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => false, 'message' => 'ID ban khong hop le.'], 400);
     exit;
 }
 
@@ -38,7 +37,7 @@ if ($order = $resOrder->fetch_assoc()) {
     $stmtItems->close();
 
     $order['items'] = $items;
-    echo json_encode(['success' => true, 'order' => $order, 'source' => 'order'], JSON_UNESCAPED_UNICODE);
+    ResponseService::json(['success' => true, 'order' => $order, 'source' => 'order']);
     $stmt->close();
     $conn->close();
     exit;
@@ -84,7 +83,7 @@ if ($booking = $resBooking->fetch_assoc()) {
     }
     $stmtItems->close();
 
-    echo json_encode([
+    ResponseService::json([
         'success' => true,
         'order' => [
             'id' => null,
@@ -95,7 +94,7 @@ if ($booking = $resBooking->fetch_assoc()) {
             'items' => $items,
         ],
         'source' => 'booking',
-    ], JSON_UNESCAPED_UNICODE);
+    ]);
     $stmtBooking->close();
     $conn->close();
     exit;
@@ -103,4 +102,4 @@ if ($booking = $resBooking->fetch_assoc()) {
 
 $stmtBooking->close();
 $conn->close();
-echo json_encode(['success' => true, 'order' => null], JSON_UNESCAPED_UNICODE);
+ResponseService::json(['success' => true, 'order' => null]);

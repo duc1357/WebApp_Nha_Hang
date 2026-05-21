@@ -8,9 +8,7 @@ require_once 'auth_check.php';
     <meta charset="UTF-8">
     <title>Quản Lý Tài Khoản - Dượng Bầu Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         :root { --primary: #e67e22; --text-main: #2c3e50; --bg: #f4f6f9; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text-main); display: flex; min-height: 100vh; }
@@ -58,7 +56,7 @@ require_once 'auth_check.php';
     <div class="main-content">
         <div class="page-header">
             <h2 style="font-size: 24px;">Quản Lý Tài Khoản</h2>
-            <button class="btn-add" onclick="openModal()">+ Thêm Tài Khoản</button>
+            <button class="btn-add" data-action="open-modal">+ Thêm Tài Khoản</button>
         </div>
 
         <div class="filters">
@@ -68,7 +66,7 @@ require_once 'auth_check.php';
                 <option value="user">User (Khách)</option>
                 <option value="admin">Admin (Quản trị)</option>
             </select>
-            <button onclick="loadUsers(1)" class="btn-search">Tìm kiếm</button>
+            <button data-action="load-users" class="btn-search">Tìm kiếm</button>
         </div>
 
         <div class="table-container">
@@ -111,7 +109,8 @@ require_once 'auth_check.php';
             </div>
             <div style="margin-bottom:12px;">
                 <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Mật khẩu <span id="pwdHint" style="font-weight:400;color:#999;font-size:11px;display:none;">(Để trống nếu không đổi)</span>:</label>
-                <input type="password" id="userPassword" placeholder="******" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;">
+                <input type="password" id="userPassword" minlength="8" pattern="(?=.*[A-Z])(?=.*\d).{8,}"
+                    placeholder="Tối thiểu 8 ký tự, có chữ hoa và số" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;">
             </div>
             <div style="margin-bottom:12px;">
                 <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Vai trò:</label>
@@ -121,195 +120,15 @@ require_once 'auth_check.php';
                 </select>
             </div>
             <div style="text-align:right; gap:8px; display:flex; justify-content:flex-end; margin-top:20px;">
-                <button onclick="closeModal()" style="padding:8px 16px; border:1px solid #ddd; background:white; border-radius:6px; cursor:pointer; font-weight:600;">Hủy</button>
-                <button onclick="saveUser()" style="padding:8px 16px; border:none; background:var(--primary); color:white; border-radius:6px; cursor:pointer; font-weight:600;">Lưu</button>
+                <button data-action="close-modal" style="padding:8px 16px; border:1px solid #ddd; background:white; border-radius:6px; cursor:pointer; font-weight:600;">Hủy</button>
+                <button data-action="save-user" style="padding:8px 16px; border:none; background:var(--primary); color:white; border-radius:6px; cursor:pointer; font-weight:600;">Lưu</button>
             </div>
         </div>
     </div>
 
-    <script>
-        function logout() {
-            fetch('../api/auth/logout.php', { method: 'POST' }).then(() => window.location.href = '../index.html');
-        }
-
-        function escapeHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        let currentPage = 1;
-
-        document.addEventListener('DOMContentLoaded', () => loadUsers(1));
-
-        function loadUsers(page) {
-            currentPage = page;
-            const search = document.getElementById('searchInput').value;
-            const role = document.getElementById('roleFilter').value;
-            
-            const tbody = document.querySelector('#usersTable tbody');
-            tbody.innerHTML = '<tr><td colspan="7">Đang tải...</td></tr>';
-
-            fetch(`../api/admin/get_users_list.php?page=${page}&limit=10&search=${encodeURIComponent(search)}&role=${role}`)
-                .then(res => res.json())
-                .then(data => {
-                    tbody.innerHTML = '';
-                    if (!data.success || !data.users.length) {
-                        tbody.innerHTML = '<tr><td colspan="7">Không tìm thấy tài khoản nào.</td></tr>';
-                        renderPagination(0, 1);
-                        return;
-                    }
-
-                    data.users.forEach(u => {
-                        const roleClass = u.role === 'admin' ? 'role-admin' : 'role-user';
-                        const roleText = u.role === 'admin' ? 'Quản trị viên' : 'Khách hàng';
-                        const id = Number(u.id) || 0;
-                        
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>#${id}</td>
-                            <td><strong>${escapeHtml(u.name)}</strong></td>
-                            <td>${escapeHtml(u.phone)}</td>
-                            <td>${escapeHtml(u.email || '-')}</td>
-                            <td><span class="badge ${roleClass}">${roleText}</span></td>
-                            <td>${escapeHtml(u.created_at)}</td>
-                            <td style="text-align:center;">
-                                <button type="button" class="btn-action btn-edit js-edit-user" title="Sửa">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                </button>
-                                ${u.role !== 'admin' ? 
-                                `<button type="button" class="btn-action btn-delete js-delete-user" title="Xóa">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                </button>` : ''}
-                            </td>
-                        `;
-                        tr.querySelector('.js-edit-user').addEventListener('click', () => editUser(id, u.name || '', u.phone || '', u.email || '', u.role || 'user'));
-                        const deleteBtn = tr.querySelector('.js-delete-user');
-                        if (deleteBtn) deleteBtn.addEventListener('click', () => deleteUser(id));
-                        tbody.appendChild(tr);
-                    });
-
-                    renderPagination(data.pagination.total_pages, data.pagination.page);
-                })
-                .catch(err => console.error(err));
-        }
-
-        function renderPagination(totalPages, current) {
-            const container = document.getElementById('pagination');
-            container.innerHTML = '';
-            if(totalPages <= 1) return;
-
-            const prevBtn = document.createElement('button');
-            prevBtn.className = 'page-link';
-            prevBtn.textContent = '«';
-            prevBtn.disabled = current === 1;
-            prevBtn.onclick = () => loadUsers(current - 1);
-            container.appendChild(prevBtn);
-
-            for(let i=1; i<=totalPages; i++) {
-                const btn = document.createElement('button');
-                btn.className = `page-link ${i === current ? 'active' : ''}`;
-                btn.textContent = i;
-                btn.onclick = () => loadUsers(i);
-                container.appendChild(btn);
-            }
-
-            const nextBtn = document.createElement('button');
-            nextBtn.className = 'page-link';
-            nextBtn.textContent = '»';
-            nextBtn.disabled = current === totalPages;
-            nextBtn.onclick = () => loadUsers(current + 1);
-            container.appendChild(nextBtn);
-        }
-
-        // Modal Logic
-        const modal = document.getElementById('userModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const pwdHint = document.getElementById('pwdHint');
-
-        function openModal() {
-            document.getElementById('userId').value = '';
-            document.getElementById('userName').value = '';
-            document.getElementById('userPhone').value = '';
-            document.getElementById('userEmail').value = '';
-            document.getElementById('userPassword').value = '';
-            document.getElementById('userRole').value = 'user';
-            
-            modalTitle.textContent = 'Thêm tài khoản mới';
-            pwdHint.style.display = 'none';
-            modal.style.display = 'flex';
-        }
-
-        function editUser(id, name, phone, email, role) {
-            document.getElementById('userId').value = id;
-            document.getElementById('userName').value = name;
-            document.getElementById('userPhone').value = phone;
-            document.getElementById('userEmail').value = (email === 'null') ? '' : email;
-            document.getElementById('userRole').value = role;
-            document.getElementById('userPassword').value = '';
-
-            modalTitle.textContent = 'Chỉnh sửa tài khoản';
-            pwdHint.style.display = 'inline';
-            modal.style.display = 'flex';
-        }
-
-        function closeModal() {
-            modal.style.display = 'none';
-        }
-
-        function saveUser() {
-            const id = document.getElementById('userId').value;
-            const name = document.getElementById('userName').value;
-            const phone = document.getElementById('userPhone').value;
-            const email = document.getElementById('userEmail').value;
-            const password = document.getElementById('userPassword').value;
-            const role = document.getElementById('userRole').value;
-
-            if(!name || !phone) { alert('Vui lòng nhập tên và số điện thoại'); return; }
-
-            const url = id ? '../api/admin/update_user.php' : '../api/admin/create_user.php';
-            const body = { id, name, phone, email, password, role };
-
-            fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    alert('Thành công!');
-                    closeModal();
-                    loadUsers(currentPage);
-                } else {
-                    alert('Lỗi: ' + data.message);
-                }
-            })
-            .catch(console.error);
-        }
-
-        function deleteUser(id) {
-            if(!confirm('Bạn có chắc chắn muốn xóa user này? Hành động này sẽ chuyển user vào thùng rác (Soft Delete).')) return;
-            
-            fetch('../api/admin/delete_user.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({id: id})
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    alert(data.message);
-                    loadUsers(currentPage);
-                } else {
-                    alert('Lỗi: ' + data.message);
-                }
-            })
-            .catch(console.error);
-        }
-    </script>
+    
+    <script src="../js/admin-users.js" defer></script>
 </body>
 </html>
+
+

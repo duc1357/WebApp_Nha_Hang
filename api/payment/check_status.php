@@ -1,39 +1,42 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
-
 require_once __DIR__ . '/../../config/constants.php';
-require_once __DIR__ . '/../../config/db.php';
+require_once ROOT_PATH . '/config/db.php';
+require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/payment_state_service.php';
 
-$user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
-$order_id = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
+$userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+$orderId = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
 
-if (!$user_id) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+if (!$userId) {
+    ResponseService::error('Unauthorized', 401);
 }
 
-if (!$order_id) {
-    echo json_encode(['success' => false, 'message' => 'Missing order ID']);
-    exit;
+if ($orderId <= 0) {
+    ResponseService::error('Missing order ID', 422);
 }
 
 $conn = getDbConnection();
-
 $stmt = $conn->prepare("SELECT status FROM orders WHERE id = ? AND user_id = ?");
-$stmt->bind_param("ii", $order_id, $user_id);
+$stmt->bind_param("ii", $orderId, $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($row = $result->fetch_assoc()) {
-    echo json_encode([
-        'success' => true,
-        'status' => $row['status'] // Will be 'paid' if webhook succeeded
+    $status = (string)$row['status'];
+    if (!in_array($status, PaymentStateService::orderStatuses(), true)) {
+        $stmt->close();
+        $conn->close();
+        ResponseService::error('Invalid order status', 500);
+    }
+
+    $stmt->close();
+    $conn->close();
+    ResponseService::success([
+        'status' => $status,
+        'is_paid' => PaymentStateService::isPaidOrderStatus($status),
     ]);
-} else {
-    echo json_encode(['success' => false, 'message' => 'Order not found']);
 }
 
 $stmt->close();
 $conn->close();
-?>
+ResponseService::error('Order not found', 404);

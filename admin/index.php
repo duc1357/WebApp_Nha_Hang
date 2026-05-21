@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <title>Admin Login - Dượng Bầu Restaurant</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -70,7 +69,7 @@
         <div class="logo">DB Admin</div>
         <div class="subtitle">Đăng nhập hệ thống quản trị</div>
         
-        <form onsubmit="handleLogin(event)">
+        <form id="adminLoginForm">
             <input type="email" id="email" placeholder="Email quản trị viên" required>
             <input type="password" id="password" placeholder="Mật khẩu" required>
             <button type="submit" id="btnLogin">Đăng Nhập</button>
@@ -78,67 +77,6 @@
         <div class="error-msg" id="errorMsg">Thông tin đăng nhập không đúng</div>
     </div>
 
-    <script>
-        let csrfToken = '';
-        (async function initCsrf() {
-            try {
-                const res = await fetch('../api/auth/get_csrf.php');
-                const data = await res.json();
-                if (data.success) {
-                    csrfToken = data.csrf_token;
-                }
-            } catch (e) { console.error('CSRF Init fail', e); }
-        })();
-
-        // Fetch Interceptor
-        const originalFetch = window.fetch;
-        window.fetch = async function(url, options = {}) {
-            if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method.toUpperCase())) {
-                if (!options.headers) options.headers = {};
-                if (options.headers instanceof Headers) {
-                    options.headers.append('X-CSRF-Token', csrfToken);
-                } else {
-                    options.headers['X-CSRF-Token'] = csrfToken;
-                }
-            }
-            return originalFetch(url, options);
-        };
-
-
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('btnLogin');
-            const errDiv = document.getElementById('errorMsg');
-
-            btn.disabled = true;
-            btn.textContent = "Đang xử lý...";
-            errDiv.style.display = 'none';
-
-            try {
-                const res = await fetch('../api/admin/login.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    window.location.href = 'dashboard.php';
-                } else {
-                    errDiv.textContent = data.message;
-                    errDiv.style.display = 'block';
-                }
-            } catch (err) {
-                console.error(err);
-                errDiv.textContent = "Lỗi kết nối server";
-                errDiv.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "Đăng Nhập";
-            }
-        }
-    </script>
+    <script src="../js/admin-login.js" defer></script>
 </body>
 </html>

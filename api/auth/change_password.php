@@ -1,72 +1,65 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
+require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/request_service.php';
+require_once ROOT_PATH . '/api/services/validation_service.php';
 require_once ROOT_PATH . '/api/services/csrf_service.php';
+require_once ROOT_PATH . '/api/services/password_policy.php';
 
-// SEC-02: Validate CSRF cho mutating request
-CsrfService::validateRequest();
+try {
+    CsrfService::validateRequest();
 
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập để thực hiện chức năng này.']);
-    exit;
-}
-
-$data = json_decode(file_get_contents("php://input"), true);
-
-if (!isset($data['old_password']) || !isset($data['new_password'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Vui lòng nhập đầy đủ thông tin.']);
-    exit;
-}
-
-$user_id  = (int) $_SESSION['user_id'];
-$old_pass = $data['old_password'];
-$new_pass = $data['new_password'];
-
-if (strlen($new_pass) < 6) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Mật khẩu mới phải có ít nhất 6 ký tự.']);
-    exit;
-}
-
-$conn = getDbConnection();
-
-// 1. Get current password hash
-$stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$stmt->close();
-
-if ($row = $result->fetch_assoc()) {
-    $current_hash = $row['password'];
-
-    // 2. Verify old password
-    if (password_verify($old_pass, $current_hash)) {
-        // 3. Hash new password and update
-        $new_hash = password_hash($new_pass, PASSWORD_BCRYPT);
-
-        $updateStmt = $conn->prepare("UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?");
-        $updateStmt->bind_param("si", $new_hash, $user_id);
-
-        if ($updateStmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Đổi mật khẩu thành công.']);
-        } else {
-            // CODE-06: Không lộ DB error
-            error_log('[ChangePass] Update failed: ' . $conn->error);
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống. Vui lòng thử lại.']);
-        }
-        $updateStmt->close();
-    } else {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Mật khẩu cũ không đúng.']);
+    if (!isset($_SESSION['user_id'])) {
+        ResponseService::error('Vui long dang nhap de thuc hien chuc nang nay.', 401);
     }
-} else {
-    http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Tài khoản không tồn tại.']);
-}
 
-$conn->close();
+    $data = RequestService::json(true);
+    $oldPass = ValidationService::requiredString($data, 'old_password', 'Vui long nhap day du thong tin.');
+    $newPass = ValidationService::requiredString($data, 'new_password', 'Vui long nhap day du thong tin.');
+
+    if (!PasswordPolicy::isValid($newPass)) {
+        ResponseService::error(PasswordPolicy::MESSAGE, 400);
+    }
+
+    $userId = (int)$_SESSION['user_id'];
+    $conn = getDbConnection();
+
+    $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+
+    if (!$row) {
+        $conn->close();
+        ResponseService::error('Tai khoan khong ton tai.', 404);
+    }
+
+    if (!password_verify($oldPass, $row['password'])) {
+        $conn->close();
+        ResponseService::error('Mat khau cu khong dung.', 400);
+    }
+
+    $newHash = password_hash($newPass, PASSWORD_BCRYPT);
+    $updateStmt = $conn->prepare("UPDATE users SET password = ?, token_version = token_version + 1 WHERE id = ?");
+    $updateStmt->bind_param("si", $newHash, $userId);
+
+    if (!$updateStmt->execute()) {
+        error_log('[ChangePass] Update failed: ' . $conn->error);
+        $updateStmt->close();
+        $conn->close();
+        ResponseService::error('Loi he thong. Vui long thu lai.', 500);
+    }
+
+    $updateStmt->close();
+    $conn->close();
+
+    ResponseService::success(['message' => 'Doi mat khau thanh cong.']);
+} catch (InvalidArgumentException $e) {
+    ResponseService::error($e->getMessage(), $e->getCode() ?: 400);
+} catch (Throwable $e) {
+    error_log('[ChangePass] ' . $e->getMessage());
+    ResponseService::error('Loi he thong. Vui long thu lai.', 500);
+}

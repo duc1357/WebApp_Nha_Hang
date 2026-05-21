@@ -1,8 +1,8 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/get_users_list.php
 ob_clean();
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
 require_once __DIR__ . '/../../config/db.php';
@@ -70,7 +70,7 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 $conn->close();
 
-echo json_encode([
+ResponseService::json([
     'success' => true,
     'users'   => $users,
     'pagination' => [
@@ -79,4 +79,4 @@ echo json_encode([
         'limit' => $limit,
         'total_pages' => ceil($totalUsers / $limit)
     ]
-], JSON_UNESCAPED_UNICODE);
+]);

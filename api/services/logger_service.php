@@ -91,6 +91,10 @@ class Logger
             flock($fp, LOCK_UN);
             fclose($fp);
         }
+
+        if ($level === self::CRITICAL) {
+            self::sendCriticalAlertEmail($message, $context, $channel);
+        }
     }
 
     /* =========================================
@@ -235,5 +239,83 @@ class Logger
         return array_values(array_filter(
             array_map(fn($line) => json_decode($line, true), $recent)
         ));
+    }
+
+    /**
+     * Gửi email cảnh báo an ninh/lỗi nghiêm trọng cho Admin (Có chống lặp vô tận)
+     */
+    private static function sendCriticalAlertEmail(string $message, array $context, string $channel): void
+    {
+        static $isSending = false;
+        if ($isSending) return;
+        $isSending = true;
+
+        try {
+            require_once __DIR__ . '/email_service.php';
+
+            $adminEmail = defined('ADMIN_EMAIL') ? ADMIN_EMAIL : (defined('MAIL_USER') ? MAIL_USER : '');
+            if (empty($adminEmail)) {
+                error_log("[Logger Alert] ADMIN_EMAIL or MAIL_USER not configured.");
+                $isSending = false;
+                return;
+            }
+
+            $subject = "🚨 [Cảnh Báo Hệ Thống] Critical Log Triggered - Nhà Hàng Dượng Bầu";
+            $ip = self::getClientIp();
+            $uri = $_SERVER['REQUEST_URI'] ?? 'N/A';
+            $method = $_SERVER['REQUEST_METHOD'] ?? 'CLI';
+            $time = date('Y-m-d H:i:s');
+            $contextStr = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+            $body = "
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #f3a0a0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
+                    <div style='background-color: #e74c3c; color: #ffffff; padding: 20px; text-align: center;'>
+                        <h2 style='margin: 0; font-size: 22px; letter-spacing: 1px;'>🚨 CẢNH BÁO SỰ CỐ NGHIÊM TRỌNG</h2>
+                    </div>
+                    <div style='padding: 24px; background-color: #ffffff; color: #2c3e50; line-height: 1.6;'>
+                        <p style='margin-top: 0;'>Chào Admin,</p>
+                        <p>Hệ thống vừa phát hiện và ghi nhận một sự kiện nghiêm trọng (log cấp độ <strong>CRITICAL</strong>). Vui lòng kiểm tra ngay lập tức:</p>
+
+                        <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
+                            <tr>
+                                <td style='padding: 8px 0; font-weight: bold; width: 120px; border-bottom: 1px solid #f1f3f5;'>Thời gian:</td>
+                                <td style='padding: 8px 0; border-bottom: 1px solid #f1f3f5;'>{$time}</td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 8px 0; font-weight: bold; border-bottom: 1px solid #f1f3f5;'>Kênh log:</td>
+                                <td style='padding: 8px 0; border-bottom: 1px solid #f1f3f5;'><span style='background:#f8d7da; color:#721c24; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:bold;'>{$channel}</span></td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 8px 0; font-weight: bold; border-bottom: 1px solid #f1f3f5;'>Yêu cầu:</td>
+                                <td style='padding: 8px 0; border-bottom: 1px solid #f1f3f5;'><strong>[{$method}]</strong> {$uri}</td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 8px 0; font-weight: bold; border-bottom: 1px solid #f1f3f5;'>Địa chỉ IP:</td>
+                                <td style='padding: 8px 0; border-bottom: 1px solid #f1f3f5;'><code>{$ip}</code></td>
+                            </tr>
+                        </table>
+
+                        <div style='background-color: #fff5f5; border-left: 4px solid #e74c3c; padding: 16px; border-radius: 4px; margin-bottom: 24px;'>
+                            <strong style='color: #c0392b; display: block; margin-bottom: 6px;'>Thông điệp sự cố:</strong>
+                            <span style='font-size: 15px; font-weight: bold;'>{$message}</span>
+                        </div>
+
+                        <h3 style='font-size: 16px; border-bottom: 2px solid #eaedf1; padding-bottom: 8px; margin-top: 0;'>Dữ liệu Context đính kèm:</h3>
+                        <pre style='background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; font-family: Courier New, monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; word-break: break-all;'>{$contextStr}</pre>
+
+                        <p style='color: #7f8c8d; font-size: 11px; margin-top: 30px; text-align: center; border-top: 1px solid #eaedf1; padding-top: 15px;'>
+                            Email này được gửi tự động từ hệ thống giám sát thời gian thực của Nhà Hàng Cơm Quê Dượng Bầu.
+                        </p>
+                    </div>
+                </div>
+            ";
+
+            EmailService::send($adminEmail, $subject, $body);
+        } catch (Throwable $e) {
+            // Chỉ ghi error_log của PHP, tuyệt đối không gọi Logger ghi lỗi tránh loop
+            error_log("[Logger Critical Alert Email Error] " . $e->getMessage());
+        } finally {
+            $isSending = false;
+        }
     }
 }

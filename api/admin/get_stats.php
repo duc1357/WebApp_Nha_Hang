@@ -1,8 +1,8 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // CODE-07: Guard ob_clean() với ob_get_level()
 if (ob_get_level()) ob_clean();
 require_once __DIR__ . '/auth_check_api.php';
-header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
 date_default_timezone_set('Asia/Ho_Chi_Minh');
@@ -78,10 +78,10 @@ if ($row = $res->fetch_assoc()) {
 $stmt->close();
 
 
-echo json_encode([
+ResponseService::json([
     'success'        => true,
     'today_revenue'  => $todayRevenue,
     'today_orders'   => $todayOrders,
     'today_bookings' => $todayBookings,
     'pending_orders' => $pendingOrders
-], JSON_UNESCAPED_UNICODE);
+]);

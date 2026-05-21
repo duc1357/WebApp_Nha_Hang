@@ -1,5 +1,5 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 error_reporting(0);
 ini_set('display_errors', 0);
 require_once __DIR__ . '/../../config/constants.php';
@@ -10,8 +10,7 @@ require_once __DIR__ . '/../../api/services/logger_service.php';
 
 // Rate Limit: 10/min
 if (!RateLimitService::check('admin_login', 10, 60)) {
-    http_response_code(429);
-    echo json_encode(['success' => false, 'message' => 'Quá nhiều lần thử.']);
+    ResponseService::json(['success' => false, 'message' => 'Quá nhiều lần thử.'], 429);
     exit;
 }
 
@@ -25,8 +24,7 @@ $email = isset($data['email']) ? trim($data['email']) : '';
 $password = isset($data['password']) ? trim($data['password']) : '';
 
 if (empty($email) || empty($password)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Vui lòng nhập email và mật khẩu']);
+    ResponseService::json(['success' => false, 'message' => 'Vui lòng nhập email và mật khẩu'], 400);
     exit;
 }
 
@@ -49,18 +47,16 @@ if ($result->num_rows === 1) {
         CsrfService::rotateToken();
         Logger::auth('Admin login success', ['user_id' => $user['id'], 'email' => $email]);
 
-        echo json_encode(['success' => true, 'message' => 'Đăng nhập thành công']);
+        ResponseService::json(['success' => true, 'message' => 'Đăng nhập thành công']);
     } else {
         Logger::auth('Admin login failed - wrong password', ['email' => $email]);
         Logger::security('Admin brute-force attempt?', ['email' => $email]);
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.']);
+        ResponseService::json(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.'], 401);
     }
 } else {
     // Generic message – tránh user enumeration attack
     Logger::auth('Admin login failed - user not found or not admin', ['email' => $email]);
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.']);
+    ResponseService::json(['success' => false, 'message' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền truy cập.'], 401);
 }
 
 $stmt->close();

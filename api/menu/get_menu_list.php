@@ -1,7 +1,7 @@
 <?php
+require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/menu/get_menu_list.php
 ob_clean();
-header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/db.php';
 $conn = getDbConnection();
@@ -61,7 +61,7 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 $conn->close();
 
-echo json_encode([
+ResponseService::json([
     'success' => true,
     'items'   => $items,
     'pagination' => [
@@ -70,4 +70,4 @@ echo json_encode([
         'limit' => $limit,
         'total_pages' => ceil($totalItems / $limit)
     ]
-], JSON_UNESCAPED_UNICODE);
+]);

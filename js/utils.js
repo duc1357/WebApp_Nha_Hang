@@ -136,6 +136,29 @@ window.setLoading = function(btn, isLoading, text = 'Đang xử lý...') {
     }
 };
 
+window.fetchJson = async function(url, options = {}) {
+    const res = await fetch(url, options);
+    const data = await res.json().catch(() => null);
+    if (!data) {
+        throw new Error('Phản hồi không hợp lệ từ máy chủ');
+    }
+    return data;
+};
+
+window.renderState = function(container, message, type = 'empty') {
+    if (!container) return;
+    const className = type === 'error' ? 'state-message state-error' : 'state-message state-empty';
+    container.innerHTML = `<div class="${className}" role="status">${escapeHTML(message)}</div>`;
+};
+
+window.renderEmptyState = function(container, message = 'Chưa có dữ liệu.') {
+    renderState(container, message, 'empty');
+};
+
+window.renderErrorState = function(container, message = 'Không thể tải dữ liệu. Vui lòng thử lại.') {
+    renderState(container, message, 'error');
+};
+
 /**
  * Sao chép nội dung của element ra clipboard
  * @param {string} elementId

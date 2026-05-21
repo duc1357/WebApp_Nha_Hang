@@ -32,7 +32,7 @@
         <!-- NAVIGATION -->
         <nav class="main-nav">
             <a href="index.html" class="nav-brand">
-                <img src="photo/favicon.png" alt="Nhà Hàng Cơm Quê Dượng Bầu" style="height: 48px; width: 48px; object-fit: cover; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <img src="photo/favicon.png" alt="Nhà Hàng Cơm Quê Dượng Bầu" class="nav-logo-img">
             </a>
             <!-- <a href="#menu">Thực Đơn</a>  Removing static links if needed, but keeping simple for now -->
             <a href="#menu">Thực Đơn</a>
@@ -45,7 +45,7 @@
         <div class="container">
 
             <!-- MENU -->
-            <section id="menu" class="section-box">
+            <section id="menu" class="section-box customer-menu-section">
                 <h2>Thực Đơn</h2>
                 <div class="menu-grid" id="public-menu-grid">
                     <p style="text-align:center; width:100%; grid-column:1/-1;">Đang tải thực đơn...</p>
@@ -54,7 +54,7 @@
             </section>
 
             <!-- REVIEWS SECTION -->
-            <section id="reviews" class="section-box">
+            <section id="reviews" class="section-box customer-reviews-section">
                 <h2>Khách Hàng Nói Gì Về Chúng Tôi?</h2>
                 <div class="reviews-grid" id="featured-reviews-grid">
                     <div class="spinner"></div> Đang tải đánh giá...
@@ -77,10 +77,10 @@
 
     <!-- FLOATING CART WIDGET -->
     <div id="floating-cart-container">
-        <div id="floating-cart-popup" class="hidden">
+        <div id="floating-cart-popup" class="hidden customer-cart-panel">
             <div class="cart-header">
                 <h3>Giỏ Hàng</h3>
-                <span class="close-cart" onclick="toggleCart()">&times;</span>
+                <span class="close-cart" data-action="toggle-cart">&times;</span>
             </div>
             <div id="cart-items" class="cart-body"></div>
 
@@ -88,14 +88,14 @@
                 <div class="voucher-box premium-form-group">
                     <label for="voucher-input" style="display:none;">Mã giảm giá</label>
                     <input type="text" id="voucher-input" placeholder="Nhập mã giảm giá...">
-                    <button onclick="checkVoucher()" class="btn-apply-voucher">Áp dụng</button>
+                    <button type="button" data-action="check-voucher" class="btn-apply-voucher">Áp dụng</button>
                 </div>
                 <div id="voucher-msg" class="voucher-msg"></div>
 
                 <div class="order-context premium-context">
                     <div class="radio-group">
-                        <label class="premium-radio"><input type="radio" name="order_type" value="delivery" checked onchange="toggleOrderType()"> <span>Giao hàng</span></label>
-                        <label class="premium-radio"><input type="radio" name="order_type" value="dine_in" onchange="toggleOrderType()"> <span>Tại bàn</span></label>
+                        <label class="premium-radio"><input type="radio" name="order_type" value="delivery" checked> <span>Giao hàng</span></label>
+                        <label class="premium-radio"><input type="radio" name="order_type" value="dine_in"> <span>Tại bàn</span></label>
                     </div>
 
                     <div id="delivery_info" class="premium-form-group">
@@ -124,11 +124,11 @@
                     </div>
                 </div>
 
-                <button id="checkout-btn" class="btn-checkout-premium" onclick="checkout()">Thanh toán ngay</button>
+                <button id="checkout-btn" class="btn-checkout-premium" data-action="checkout">Thanh toán ngay</button>
             </div>
         </div>
 
-        <button id="floating-cart-btn" onclick="toggleCart()">
+        <button id="floating-cart-btn" data-action="toggle-cart">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="9" cy="21" r="1"></circle>
@@ -140,9 +140,9 @@
     </div>
 
     <!-- QR PAYMENT MODAL -->
-    <div id="qr-payment-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeQrModal()">&times;</span>
+    <div id="qr-payment-modal" class="modal-overlay hidden customer-payment-modal">
+        <div class="modal-content customer-payment-panel">
+            <span class="close-modal" data-action="close-qr-modal">&times;</span>
             <div class="modal-header">
                 <h2>Thanh Toán QR</h2>
                 <p>Quét mã để thanh toán ngay</p>
@@ -163,7 +163,7 @@
                         <span class="label">Nội dung chuyển khoản:</span>
                         <div class="copy-box">
                             <span class="value" id="qr-content">...</span>
-                            <button class="copy-btn" onclick="copyToClipboard('qr-content')">
+                            <button class="copy-btn" data-copy-target="qr-content">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round">
@@ -182,8 +182,21 @@
             </div>
 
             <div class="modal-footer">
-                <button class="btn-finish" onclick="closeQrModal()">Hoàn Tất Thanh Toán</button>
+                <button class="btn-finish" data-action="close-qr-modal">Hoàn Tất Thanh Toán</button>
             </div>
+        </div>
+    </div>
+
+    <!-- THANK YOU MODAL -->
+    <div id="thank-you-modal" class="modal-overlay hidden customer-thank-you-modal" role="dialog" aria-modal="true" aria-labelledby="thank-you-title">
+        <div class="modal-content thank-you-content customer-thank-you-panel">
+            <div class="thank-you-icon">🎉</div>
+            <h2 id="thank-you-title" class="thank-you-title">Cảm Ơn Quý Khách!</h2>
+            <p class="thank-you-message">Đơn hàng của bạn đã được thanh toán thành công.<br>Chúng tôi sẽ chuẩn bị món ăn ngay!</p>
+            <div class="thank-you-divider"></div>
+            <p class="thank-you-brand">🍲 Nhà Hàng Cơm Quê Dượng Bầu</p>
+            <p class="thank-you-slogan">Ẩm thực quê nhà – Đậm vị thân thương</p>
+            <button class="btn-finish thank-you-btn" data-action="close-thank-you-modal">Đóng</button>
         </div>
     </div>
 
@@ -194,14 +207,6 @@
     <script src="js/menu.js?v=3.0"></script>
     <script src="js/payment.js?v=3.0"></script>
     <script src="js/reviews.js?v=3.0"></script>
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Render Header User Info
-            renderUserHeader();
-        });
-    </script>
 
     <!-- Profile Modal Removed (Moved to profile.html) -->
 

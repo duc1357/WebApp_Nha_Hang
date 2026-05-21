@@ -125,6 +125,10 @@ window.updateCart = function() {
     let total = 0;
     let count = 0;
 
+    if (window.cart.length === 0) {
+        cartItems.innerHTML = '<div class="state-message state-empty">Giỏ hàng đang trống.</div>';
+    }
+
     window.cart.forEach(item => {
         total += item.price * item.quantity;
         count += item.quantity;
@@ -268,15 +272,16 @@ window.checkout = function() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            showToast(data.message || 'Đặt hàng thành công!', 'success');
             if (data.payUrl) {
                 showQrModal(data.payUrl, data.final_total || total, 'DH' + (data.order_id || ''));
                 return;
             }
+            // Thanh toán tiền mặt thành công
             window.cart = [];
             updateCart();
             toggleCart();
             saveCartToStorage();
+            setTimeout(() => showThankYouModal(), 300);
         } else {
             showToast(data.message || 'Thanh toán thất bại', 'error');
         }

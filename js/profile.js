@@ -14,12 +14,28 @@
  */
 window.switchProfileTab = function(tabName) {
     document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`.sidebar-btn[onclick="switchProfileTab('${tabName}')"]`)?.classList.add('active');
+    document.querySelector(`.sidebar-btn[data-tab="${tabName}"]`)?.classList.add('active');
     document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
     document.getElementById(`tab-${tabName}`)?.classList.add('active');
 
     if (tabName === 'orders' || tabName === 'bookings') loadUserHistory();
 };
+
+function syncProfileSummary(user) {
+    if (!user) return;
+
+    const displayName = document.getElementById('display-user-name');
+    if (displayName) displayName.textContent = user.name || 'Thành viên';
+
+    const role = document.getElementById('profile-role');
+    if (role) role.textContent = user.role === 'admin' ? 'Quản trị' : 'Khách hàng';
+
+    const emailSummary = document.getElementById('profile-email-summary');
+    if (emailSummary) emailSummary.textContent = user.email || 'Chưa cập nhật';
+
+    const phoneSummary = document.getElementById('profile-phone-summary');
+    if (phoneSummary) phoneSummary.textContent = user.phone || 'Chưa cập nhật';
+}
 
 /* =========================================
    LOAD PROFILE INFO
@@ -35,6 +51,8 @@ window.loadUserProfile = function() {
 
     const img = document.getElementById('profile-avatar-img');
     if (img) img.src = /^photo\/[A-Za-z0-9._/\-]+$/.test(user.avatar || '') ? user.avatar : 'photo/default-user.png';
+
+    syncProfileSummary(user);
 };
 
 /* =========================================
@@ -63,6 +81,7 @@ window.updateUserInfo = function() {
             showToast('Cập nhật thông tin thành công!', 'success');
             const newUser = { ...user, name, email, phone };
             localStorage.setItem('restaurant_user', JSON.stringify(newUser));
+            syncProfileSummary(newUser);
             const greeting = document.querySelector('.nav-auth span');
             if (greeting) greeting.textContent = `Xin chào, ${name}`;
         } else {
@@ -125,7 +144,10 @@ window.changePassword = function() {
     const confirmPass = document.getElementById('confirm_pass')?.value;
 
     if (newPass !== confirmPass) { showToast('Mật khẩu xác nhận không khớp!', 'error'); return; }
-    if (newPass.length < 6)      { showToast('Mật khẩu mới phải có ít nhất 6 ký tự!', 'error'); return; }
+    if (newPass.length < 8 || !/[A-Z]/.test(newPass) || !/\d/.test(newPass)) {
+        showToast('Mật khẩu cần tối thiểu 8 ký tự, có chữ hoa và số.', 'error');
+        return;
+    }
 
     const submitBtn = document.querySelector('form[onsubmit*="changePassword"] button');
     setLoading(submitBtn, true, 'Đang đổi...');
@@ -173,11 +195,10 @@ window.loadUserHistory = function(o_page, b_page) {
     const orderList   = document.getElementById('order-history-list');
     const bookingList = document.getElementById('booking-history-list');
 
-    if (orderList)   orderList.innerHTML   = '<div class="spinner"></div> Đang tải đơn hàng...';
-    if (bookingList) bookingList.innerHTML = '<div class="spinner"></div> Đang tải lịch đặt bàn...';
+    if (orderList) renderState(orderList, 'Đang tải đơn hàng...', 'empty');
+    if (bookingList) renderState(bookingList, 'Đang tải lịch đặt bàn...', 'empty');
 
-    fetch(`api/user/get_user_history.php?o_page=${currentOrderPage}&b_page=${currentBookingPage}`)
-        .then(res => res.json())
+    fetchJson(`api/user/get_user_history.php?o_page=${currentOrderPage}&b_page=${currentBookingPage}`)
         .then(data => {
             // Xử lý session expired
             if (data.error === 'Unauthorized') {
@@ -194,19 +215,21 @@ window.loadUserHistory = function(o_page, b_page) {
                     const statusBadge = (s) => s === 'paid' ? 'success' : (s === 'cancelled' ? 'danger' : 'warning');
 
                     const ordersHtml = data.orders.map(o => `
-                        <div class="history-item" style="border:1px solid #eee;padding:10px;margin-bottom:10px;border-radius:8px;">
-                            <div style="display:flex;justify-content:space-between;">
+                        <div class="history-item">
+                            <div class="history-topline">
                                 <strong>Đơn #${o.id}</strong>
                                 <span class="badge badge-${statusBadge(o.status)}">${statusLabel(o.status)}</span>
                             </div>
-                            <p>Tổng: ${formatCurrency(o.total_amount)} - ${o.payment_method === 'bank_transfer' ? 'Chuyển khoản' : 'Tiền mặt'}</p>
-                            <small class="text-muted">${o.created_at}</small>
-                            <div style="margin-top:8px;text-align:right;">
-                                <button onclick="viewOrderDetails(${o.id})" style="background:#e67e22;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Xem chi tiết</button>
+                            <div class="history-meta">
+                                <span>Tổng: <strong>${formatCurrency(o.total_amount)}</strong></span>
+                                <span>${o.payment_method === 'bank_transfer' ? 'Chuyển khoản' : 'Tiền mặt'} · ${o.created_at}</span>
+                            </div>
+                            <div class="history-actions">
+                                <button class="profile-action-btn primary" data-order-details="${o.id}">Xem chi tiết</button>
                                 ${o.status === 'paid'
                                     ? (o.is_reviewed > 0
-                                        ? `<button disabled style="background:#95a5a6;color:white;border:none;padding:5px 10px;border-radius:4px;font-size:12px;margin-left:5px;cursor:default;">Đã đánh giá</button>`
-                                        : `<button onclick="openReviewModal(${o.id})" style="background:#2ecc71;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:5px;">Đánh giá</button>`)
+                                        ? `<button class="profile-action-btn muted" disabled>Đã đánh giá</button>`
+                                        : `<button class="profile-action-btn success" data-review-order="${o.id}">Đánh giá</button>`)
                                     : ''}
                             </div>
                         </div>
@@ -217,21 +240,21 @@ window.loadUserHistory = function(o_page, b_page) {
                         const { current_page, total_pages } = data.pagination;
                         paginationHtml = `
                             <div class="premium-pagination">
-                                <button class="btn-page" ${current_page <= 1 ? 'disabled' : ''} onclick="loadUserHistory(${current_page - 1}, undefined)">
+                                <button class="btn-page" ${current_page <= 1 ? 'disabled' : ''} data-order-page="${current_page - 1}">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                                 </button>
                                 <div class="page-info">
                                     <span class="current">${current_page}</span>
                                     <span>/ ${total_pages}</span>
                                 </div>
-                                <button class="btn-page" ${current_page >= total_pages ? 'disabled' : ''} onclick="loadUserHistory(${current_page + 1}, undefined)">
+                                <button class="btn-page" ${current_page >= total_pages ? 'disabled' : ''} data-order-page="${current_page + 1}">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                                 </button>
                             </div>`;
                     }
                     orderList.innerHTML = ordersHtml + paginationHtml;
                 } else {
-                    orderList.innerHTML = '<p>Chưa có đơn hàng nào.</p>';
+                    renderEmptyState(orderList, 'Chưa có đơn hàng nào.');
                 }
             }
 
@@ -242,13 +265,15 @@ window.loadUserHistory = function(o_page, b_page) {
                     const bStatusBadge = (s) => s === 'cancelled' ? 'danger' : (s === 'confirmed' ? 'success' : 'warning');
 
                     const bookingsHtml = data.bookings.map(b => `
-                        <div class="history-item" style="border:1px solid #eee;padding:10px;margin-bottom:10px;border-radius:8px;">
-                            <div style="display:flex;justify-content:space-between;">
+                        <div class="history-item">
+                            <div class="history-topline">
                                 <strong>${b.date} - ${b.time.substring(0, 5)}</strong>
                                 <span class="badge badge-${bStatusBadge(b.status)}">${bStatusLabel(b.status)}</span>
                             </div>
-                            <p>Bàn: <strong>${escapeHTML(b.table_name || b.table_number || 'Chưa xếp')}</strong> - ${escapeHTML(b.floor || '')}</p>
-                            <p>Khách: ${b.guests} người</p>
+                            <div class="history-meta">
+                                <span>Bàn: <strong>${escapeHTML(b.table_name || b.table_number || 'Chưa xếp')}</strong> - ${escapeHTML(b.floor || '')}</span>
+                                <span>Khách: ${b.guests} người</span>
+                            </div>
                         </div>
                     `).join('');
                     
@@ -257,27 +282,28 @@ window.loadUserHistory = function(o_page, b_page) {
                         const { current_page, total_pages } = data.booking_pagination;
                         bPaginationHtml = `
                             <div class="premium-pagination">
-                                <button class="btn-page" ${current_page <= 1 ? 'disabled' : ''} onclick="loadUserHistory(undefined, ${current_page - 1})">
+                                <button class="btn-page" ${current_page <= 1 ? 'disabled' : ''} data-booking-page="${current_page - 1}">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                                 </button>
                                 <div class="page-info">
                                     <span class="current">${current_page}</span>
                                     <span>/ ${total_pages}</span>
                                 </div>
-                                <button class="btn-page" ${current_page >= total_pages ? 'disabled' : ''} onclick="loadUserHistory(undefined, ${current_page + 1})">
+                                <button class="btn-page" ${current_page >= total_pages ? 'disabled' : ''} data-booking-page="${current_page + 1}">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                                 </button>
                             </div>`;
                     }
                     bookingList.innerHTML = bookingsHtml + bPaginationHtml;
                 } else {
-                    bookingList.innerHTML = '<p>Chưa có lịch đặt bàn nào.</p>';
+                    renderEmptyState(bookingList, 'Chưa có lịch đặt bàn nào.');
                 }
             }
         })
         .catch(err => {
             console.error(err);
-            if (orderList) orderList.innerHTML = 'Lỗi tải dữ liệu. (Vui lòng đăng nhập lại)';
+            if (orderList) renderErrorState(orderList, 'Lỗi tải dữ liệu. Vui lòng đăng nhập lại.');
+            if (bookingList) renderErrorState(bookingList, 'Lỗi tải dữ liệu. Vui lòng đăng nhập lại.');
         });
 };
 
@@ -314,7 +340,7 @@ window.viewOrderDetails = function(orderId) {
                 html += `
                     <tr style="border-bottom:1px solid #eee;">
                         <td style="padding:8px;display:flex;align-items:center;gap:10px;">
-                            <img src="${safeImage}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.src='photo/default-food.png'">
+                            <img src="${safeImage}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">
                             <span>${escapeHTML(item.name)}</span>
                         </td>
                         <td style="padding:8px;text-align:center;">${item.quantity}</td>
@@ -337,6 +363,31 @@ window.closeOrderModal = function() {
     const modal = document.getElementById('order-detail-modal');
     if (modal) modal.style.display = 'none';
 };
+
+document.addEventListener('click', (event) => {
+    const detailButton = event.target.closest('[data-order-details]');
+    if (detailButton) {
+        viewOrderDetails(Number(detailButton.dataset.orderDetails));
+        return;
+    }
+
+    const reviewButton = event.target.closest('[data-review-order]');
+    if (reviewButton && typeof openReviewModal === 'function') {
+        openReviewModal(Number(reviewButton.dataset.reviewOrder));
+        return;
+    }
+
+    const orderPageButton = event.target.closest('[data-order-page]');
+    if (orderPageButton) {
+        loadUserHistory(Number(orderPageButton.dataset.orderPage), undefined);
+        return;
+    }
+
+    const bookingPageButton = event.target.closest('[data-booking-page]');
+    if (bookingPageButton) {
+        loadUserHistory(undefined, Number(bookingPageButton.dataset.bookingPage));
+    }
+});
 
 // Khởi tạo khi DOM sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
