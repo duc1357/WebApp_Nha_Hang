@@ -1,0 +1,36 @@
+/* =========================================
+   GLOBAL VARIABLES & DESIGN TOKENS
+   ========================================= */
+:root {
+    --primary: #e67e22;       /* Burning Orange */
+    --primary-dark: #d35400;
+    --accent: #2c3e50;        /* Dark Blue */
+    --text-main: #34495e;
+    --text-light: #7f8c8d;
+    --bg-body: #f4f6f9;
+    --bg-card: #ffffff;
+    --success: #27ae60;
+    --danger: #c0392b;
+    --warning: #f39c12;
+    --border-subtle: #e9edf2;
+    --surface-muted: #f8fafc;
+    --focus-ring: rgba(230, 126, 34, 0.28);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-xl: 24px;
+    --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --shadow-lifted: 0 18px 48px rgba(15, 23, 42, 0.16);
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --container-max: 1200px;
+    --admin-sidebar-width: 250px;
+    --radius: 12px;
+    --shadow: 0 4px 12px rgba(0,0,0,0.08);
+    --primary-gradient: linear-gradient(135deg, #e67e22, #c0392b);
+}

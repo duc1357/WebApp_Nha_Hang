@@ -822,27 +822,16 @@
         <img src="../photo/favicon.png" alt="Logo">
         Dượng Bầu
     </div>
-    <a href="dashboard.php" class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : ''; ?>">
-        <span>📊</span> Tổng quan
-    </a>
-    <a href="orders.php" class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'orders.php') ? 'active' : ''; ?>">
-        <span>🛒</span> Đơn hàng
-    </a>
-    <a href="bookings.php" class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'bookings.php') ? 'active' : ''; ?>">
-        <span>📅</span> Đặt bàn
-    </a>
-    <a href="menu.php" class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'menu.php') ? 'active' : ''; ?>">
-        <span>🍽️</span> Thực đơn
-    </a>
-    <a href="users.php" class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'users.php') ? 'active' : ''; ?>">
-        <span>👥</span> Tài khoản
-    </a>
-    <a href="vouchers.php" class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'vouchers.php') ? 'active' : ''; ?>">
-        <span>🎟️</span> Mã Khuyến Mãi
-    </a>
-    <a href="logs.php" class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'logs.php') ? 'active' : ''; ?>">
-        <span>📋</span> Nhật ký
-    </a>
+    <?php
+    $sidebarMenuItems = require dirname(__DIR__) . '/config/sidebar_menu.php';
+    $currentFile = basename($_SERVER['PHP_SELF']);
+    foreach ($sidebarMenuItems as $item):
+        $isActive = ($currentFile == $item['link']) ? 'active' : '';
+    ?>
+        <a href="<?php echo htmlspecialchars($item['link']); ?>" class="nav-item <?php echo $isActive; ?>">
+            <span><?php echo $item['icon']; ?></span> <?php echo htmlspecialchars($item['title']); ?>
+        </a>
+    <?php endforeach; ?>
     
     <!-- Theme Toggle Switcher Button -->
     <a href="#" class="nav-item theme-toggle-btn" style="margin-top: auto; cursor: pointer;">
@@ -855,5 +844,6 @@
         <span>🚪</span> Đăng xuất
     </a>
 </div>
+
 
 <script src="../js/admin-common.js" defer></script>

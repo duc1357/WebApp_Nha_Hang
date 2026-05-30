@@ -1,0 +1,199 @@
+/* =========================================
+   GLOBAL RESET & TYPOGRAPHY
+   ========================================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background-color: #fdfbf7; 
+    color: var(--text-main);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Performance Optimization: Fixed background layer */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: -2;
+    background-image: 
+        radial-gradient(circle at 0% 0%, rgba(255, 235, 220, 0.6) 0%, transparent 60%),
+        radial-gradient(circle at 100% 0%, rgba(220, 240, 255, 0.4) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Overlay for better text readability on bg */
+.bg-overlay {
+    background: rgba(255, 255, 255, 0.92); 
+    min-height: 100vh;
+    margin-top: 0;
+}
+
+a { 
+    text-decoration: none; 
+    color: inherit; 
+    transition: 0.3s; 
+}
+
+ul { 
+    list-style: none; 
+}
+
+img { 
+    display: block; 
+    max-width: 100%; 
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+    outline-color: var(--primary);
+}
+
+:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+/* =========================================
+   SHARED RESPONSIVE UI FOUNDATION
+   ========================================= */
+.container {
+    width: min(100% - 32px, var(--container-max));
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.ui-scroll-x {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.section-box {
+    background: var(--bg-card);
+    padding: 40px;
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 40px;
+}
+
+.section-box h2 {
+    text-align: center;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    color: var(--accent);
+    margin-bottom: 40px;
+    position: relative;
+    display: inline-block;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.section-box h2::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 4px;
+    background: var(--primary);
+    margin: 10px auto 0;
+    border-radius: 2px;
+}
+
+.ui-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.ui-control,
+.form-control {
+    min-height: 44px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    color: var(--text-main);
+}
+
+.ui-button,
+.btn-search,
+.btn-add,
+.btn-save {
+    min-height: 44px;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+}
+
+.ui-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+}
+
+.ui-modal-panel {
+    max-width: min(92vw, 640px);
+    max-height: min(88vh, 760px);
+    overflow: auto;
+}
+
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-container > table,
+.ui-scroll-x > table {
+    min-width: 720px;
+}
+
+/* =========================================
+   ACCESSIBILITY: REDUCED MOTION
+   ========================================= */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* =========================================
+   RESPONSIVE LAYOUT MEDIA QUERIES
+   ========================================= */
+@media (max-width: 1023px) {
+    .section-box {
+        padding: 28px;
+        border-radius: var(--radius-lg);
+    }
+    
+    .container {
+        padding: 0 10px;
+    }
+}
+
+@media (max-width: 767px) {
+    .container {
+        width: min(100% - 24px, var(--container-max));
+        margin: 28px auto;
+        padding: 0;
+    }
+
+    .section-box {
+        padding: 22px 16px;
+        margin-bottom: 28px;
+        border-radius: var(--radius-md);
+    }
+}
