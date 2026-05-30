@@ -28,6 +28,9 @@ define('REDIS_PASS', env('REDIS_PASS', ''));
 define('REDIS_DB', (int) env('REDIS_DB', 0));
 define('REDIS_ENABLED', filter_var(env('REDIS_ENABLED', 'true'), FILTER_VALIDATE_BOOLEAN));
 
+define('TRUSTED_PROXY_IPS', env('TRUSTED_PROXY_IPS', ''));
+define('TRUST_PROXY_HEADERS', filter_var(env('TRUST_PROXY_HEADERS', 'false'), FILTER_VALIDATE_BOOLEAN));
+
 if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
     require_once __DIR__ . '/session_config.php';
 }

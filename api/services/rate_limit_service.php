@@ -160,27 +160,54 @@ class RateLimitService {
         return $key !== '' ? $key : 'default';
     }
 
-    /**
-     * Lấy IP thực của client, xử lý proxy và Cloudflare.
-     */
     private static function getClientIp(): string {
-        $candidates = [
-            $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '',   // Cloudflare
-            $_SERVER['HTTP_X_FORWARDED_FOR']  ?? '',   // Reverse proxy
-            $_SERVER['HTTP_X_REAL_IP']        ?? '',   // Nginx proxy
-            $_SERVER['REMOTE_ADDR']           ?? '',
-        ];
+        $remoteAddr = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
 
-        foreach ($candidates as $ip) {
-            // X-Forwarded-For có thể là danh sách IP ngăn cách bởi dấu phẩy
-            $ip = trim(explode(',', $ip)[0]);
-            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                return $ip;
+        if (self::shouldTrustProxyHeaders($remoteAddr)) {
+            $forwarded = self::firstValidForwardedIp([
+                $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '',
+                $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
+                $_SERVER['HTTP_X_REAL_IP'] ?? '',
+            ]);
+
+            if ($forwarded !== null) {
+                return $forwarded;
             }
         }
 
-        // Fallback về REMOTE_ADDR nếu không tìm được public IP
-        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : '0.0.0.0';
+    }
+
+    private static function shouldTrustProxyHeaders(string $remoteAddr): bool {
+        if (!defined('TRUST_PROXY_HEADERS') || !TRUST_PROXY_HEADERS) {
+            return false;
+        }
+
+        return self::isTrustedProxy($remoteAddr);
+    }
+
+    private static function isTrustedProxy(string $remoteAddr): bool {
+        if (!filter_var($remoteAddr, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+
+        $trusted = defined('TRUSTED_PROXY_IPS') ? TRUSTED_PROXY_IPS : '';
+        $ips = array_filter(array_map('trim', explode(',', $trusted)));
+
+        return in_array($remoteAddr, $ips, true);
+    }
+
+    private static function firstValidForwardedIp(array $headers): ?string {
+        foreach ($headers as $header) {
+            foreach (explode(',', (string)$header) as $candidate) {
+                $ip = trim($candidate);
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $ip;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

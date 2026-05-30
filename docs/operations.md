@@ -45,7 +45,11 @@ Run from project root:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tests\run_php_lint.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\run_php_unit.ps1
 powershell -ExecutionPolicy Bypass -File .\tests\run_js_check.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\static_auth_frontend_check.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\static_auth_backend_check.ps1
+powershell -ExecutionPolicy Bypass -File .\tests\smoke\auth_lifecycle_smoke.ps1
 powershell -ExecutionPolicy Bypass -File .\tests\smoke\api_smoke.ps1
 powershell -ExecutionPolicy Bypass -File .\tests\smoke\security_smoke.ps1
 powershell -ExecutionPolicy Bypass -File .\tests\smoke\payment_booking_smoke.ps1
@@ -74,6 +78,8 @@ Back up these items together:
 - `photo/` uploads.
 - `logs/` if audit history matters.
 
+`photo/avatars/` and `photo/menu/` are runtime upload directories and are intentionally ignored by Git. Restore or mount them with the database during deploys, otherwise records that reference uploaded images will render broken image links.
+
 Local MySQL example:
 
 ```powershell
@@ -100,6 +106,8 @@ C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe Database\migrate.php
 Login problem:
 - Check `logs/auth.log`.
 - Confirm sessions are writable.
+- Admin user edits and soft-deletes intentionally revoke existing sessions/tokens through `token_version`.
+- Sessions without `token_version` are intentionally rejected after the auth hardening update; ask users to log in again after deploy if they hit a 401.
 - Confirm `JWT_SECRET` is at least 32 characters.
 
 Checkout problem:
@@ -125,6 +133,13 @@ Admin logs problem:
 - Confirm admin session is active.
 - Confirm `logs/` is writable.
 - Confirm `.htaccess` still blocks direct `/logs/` access.
+
+## Production Hardening Notes
+
+- Rotate `SEPAY_WEBHOOK_TOKEN` and `JWT_SECRET` before any public deployment.
+- Keep `TRUST_PROXY_HEADERS=false` unless Apache receives traffic only from a trusted proxy/CDN.
+- If enabling proxy headers, set `TRUSTED_PROXY_IPS` to the direct proxy IPs that connect to Apache.
+- Revenue exports are intentionally date-limited; use `from=YYYY-MM-DD&to=YYYY-MM-DD` for bounded exports.
 
 ## Operational Rules
 

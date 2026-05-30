@@ -5,7 +5,15 @@ class ResponseService {
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
         header('X-Content-Type-Options: nosniff');
-        echo json_encode($payload);
+
+        try {
+            echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            error_log('[ResponseService] JSON encode failed: ' . $e->getMessage());
+            http_response_code(500);
+            echo '{"success":false,"message":"Loi he thong. Vui long thu lai sau."}';
+        }
+
         exit;
     }
 

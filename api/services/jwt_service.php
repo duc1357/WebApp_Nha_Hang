@@ -126,19 +126,13 @@ class JwtService
         }
 
         if (isset($payload['user_id'])) {
-            require_once dirname(__DIR__, 2) . '/config/db.php';
-            $conn = getDbConnection();
-            $stmt = $conn->prepare("SELECT token_version FROM users WHERE id = ?");
-            $stmt->bind_param("i", $payload['user_id']);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            $user = $res->fetch_assoc();
-            $stmt->close();
-            $conn->close();
-
-            $tokenVersion = $payload['token_version'] ?? 1;
-            if (!$user || (int)$user['token_version'] > (int)$tokenVersion) {
+            $activeUser = self::getActiveUserForPayload($payload);
+            if (!$activeUser) {
                 ResponseService::error('Token has been revoked. Please login again.', 401);
+            }
+
+            if ($requiredRole && (string)$activeUser['role'] !== $requiredRole) {
+                ResponseService::error('Insufficient permissions', 403);
             }
         }
 
@@ -175,7 +169,44 @@ class JwtService
             return false;
         }
 
+        if (isset($decoded['user_id']) && !self::getActiveUserForPayload($decoded)) {
+            return false;
+        }
+
         $customClaims = array_diff_key($decoded, array_flip(['iat', 'nbf', 'exp', 'iss']));
         return self::generate($customClaims);
+    }
+
+    private static function getActiveUserForPayload(array $payload): array|false
+    {
+        require_once dirname(__DIR__, 2) . '/config/db.php';
+
+        $userId = (int)($payload['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $conn = getDbConnection();
+        $stmt = $conn->prepare("SELECT role, token_version, deleted_at FROM users WHERE id = ? LIMIT 1");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        $conn->close();
+
+        if (!$user || !empty($user['deleted_at'])) {
+            return false;
+        }
+
+        if (isset($payload['role']) && (string)$payload['role'] !== (string)$user['role']) {
+            return false;
+        }
+
+        $payloadVersion = (int)($payload['token_version'] ?? 0);
+        if ((int)$user['token_version'] !== $payloadVersion) {
+            return false;
+        }
+
+        return $user;
     }
 }
