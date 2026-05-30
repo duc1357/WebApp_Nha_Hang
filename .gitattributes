@@ -1,0 +1,27 @@
+# Khóa line endings nhất quán thành LF cho tất cả các file mã nguồn
+* text=auto eol=lf
+
+# Chỉ định rõ eol=lf cho các định dạng file văn bản phổ biến
+*.php text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.ps1 text eol=lf
+*.yml text eol=lf
+*.xml text eol=lf
+*.htaccess text eol=lf
+.editorconfig text eol=lf
+
+# Giữ nguyên định dạng nhị phân cho các file hình ảnh/phông chữ
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

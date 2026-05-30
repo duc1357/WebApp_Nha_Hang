@@ -1,0 +1,10 @@
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{md,html,css,js,php,ps1,sql,env.example}]
+charset = utf-8
+

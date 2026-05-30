@@ -14,7 +14,12 @@ Use this checklist before pushing or demoing the project.
 ## Automated Baseline
 
 - Run `.\tests\run_php_lint.ps1` and confirm all PHP files pass syntax checks.
+- Run `.\tests\run_php_unit.ps1` and confirm helper behavior tests pass.
 - Run `.\tests\run_js_check.ps1` and confirm all JavaScript files pass syntax checks.
+- Run `.\tests\static_auth_frontend_check.ps1` and confirm auth pages wait for CSRF and match backend validation rules.
+- Run `.\tests\static_auth_backend_check.ps1` and confirm auth-state revocation rules stay strict.
+- Run `.\tests\static_source_quality_check.ps1` and confirm source hardening checks pass.
+- Run `.\tests\smoke\auth_lifecycle_smoke.ps1` and confirm admin user edits/deletes revoke stale sessions and JWT refresh.
 - Run `.\tests\smoke\api_smoke.ps1` and confirm public API plus admin login/stats smoke checks pass.
 - Run `.\tests\smoke\security_smoke.ps1` and confirm auth, CSRF and webhook boundaries reject invalid requests.
 - Run `.\tests\smoke\payment_booking_smoke.ps1` and confirm invalid order/booking inputs are rejected before writes.
@@ -53,6 +58,7 @@ Use this checklist before pushing or demoing the project.
 ## Admin Flows
 
 - Login as admin and confirm `/api/admin/auth_check_api.php` gates protected endpoints.
+- Update or soft-delete a test user and confirm stale sessions/tokens are rejected.
 - Open `admin/logs.php` and confirm health checks plus log filters load.
 - Create, update, soft-delete menu items; verify deleted items disappear from public menu.
 - Create, update, delete vouchers; verify inactive/expired vouchers are rejected.
@@ -74,7 +80,11 @@ Use this checklist before pushing or demoing the project.
 ## Regression Checks
 
 - Run `.\tests\run_php_lint.ps1`.
+- Run `.\tests\run_php_unit.ps1`.
 - Run `.\tests\run_js_check.ps1`.
+- Run `.\tests\static_auth_frontend_check.ps1`.
+- Run `.\tests\static_auth_backend_check.ps1`.
+- Run `.\tests\smoke\auth_lifecycle_smoke.ps1`.
 - Run `.\tests\smoke\api_smoke.ps1`.
 - Run `.\tests\smoke\security_smoke.ps1`.
 - Run `.\tests\smoke\payment_booking_smoke.ps1`.
