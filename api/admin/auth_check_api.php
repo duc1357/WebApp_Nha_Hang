@@ -4,15 +4,17 @@
 // Ensure session is started properly via constants
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/auth_state_service.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+$authState = AuthStateService::validateSession('admin');
+if (!$authState['ok']) {
     // Clear buffer if any
     while (ob_get_level()) ob_end_clean();
 
-    ResponseService::error('Unauthorized Access', 401);
+    ResponseService::error('Unauthorized Access', (int)$authState['status']);
 }
 
 function requireAdminPost(): void {

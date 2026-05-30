@@ -31,7 +31,7 @@ if (empty($email) || empty($password)) {
 $conn = getDbConnection();
 
 // Check email and role='admin'
-$stmt = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ? AND role = 'admin' AND deleted_at IS NULL");
+$stmt = $conn->prepare("SELECT id, name, password, role, token_version FROM users WHERE email = ? AND role = 'admin' AND deleted_at IS NULL");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -44,6 +44,7 @@ if ($result->num_rows === 1) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['name']    = $user['name'];
         $_SESSION['role']    = $user['role']; // 'admin'
+        $_SESSION['token_version'] = (int)($user['token_version'] ?? 0);
         CsrfService::rotateToken();
         Logger::auth('Admin login success', ['user_id' => $user['id'], 'email' => $email]);
 

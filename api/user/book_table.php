@@ -10,48 +10,46 @@ require_once ROOT_PATH . '/api/services/request_service.php';
 require_once ROOT_PATH . '/api/services/validation_service.php';
 require_once ROOT_PATH . '/api/services/csrf_service.php';
 require_once ROOT_PATH . '/api/services/rate_limit_service.php';
+require_once ROOT_PATH . '/api/services/auth_state_service.php';
 
 try {
     CsrfService::validateRequest();
 
     $data = RequestService::input(false);
-    $name = ValidationService::requiredString($data, 'name', 'Du lieu khong day du.');
+    $name = ValidationService::requiredString($data, 'name', 'Dữ liệu không đầy đủ.');
     $phone = ValidationService::phone(
-        ValidationService::requiredString($data, 'phone', 'Du lieu khong day du.'),
-        'So dien thoai khong hop le.'
+        ValidationService::requiredString($data, 'phone', 'Dữ liệu không đầy đủ.'),
+        'Số điện thoại không hợp lệ.'
     );
     $date = ValidationService::date(
-        ValidationService::requiredString($data, 'date', 'Du lieu khong day du.'),
-        'Ngay hoac gio khong hop le.'
+        ValidationService::requiredString($data, 'date', 'Dữ liệu không đầy đủ.'),
+        'Ngày hoặc giờ không hợp lệ.'
     );
     $time = ValidationService::time(
-        ValidationService::requiredString($data, 'time', 'Du lieu khong day du.'),
-        'Ngay hoac gio khong hop le.'
+        ValidationService::requiredString($data, 'time', 'Dữ liệu không đầy đủ.'),
+        'Ngày hoặc giờ không hợp lệ.'
     );
-    $guestsInt = ValidationService::intRange($data['guests'] ?? null, 1, 20, 'So khach khong hop le.');
+    $guestsInt = ValidationService::intRange($data['guests'] ?? null, 1, 20, 'Số lượng khách không hợp lệ.');
     $floor = trim((string)($data['floor'] ?? ''));
-    $tableId = ValidationService::intRange($data['table_id'] ?? null, 1, PHP_INT_MAX, 'Vui long chon ban!');
+    $tableId = ValidationService::intRange($data['table_id'] ?? null, 1, PHP_INT_MAX, 'Vui lòng chọn bàn!');
     $hasPreorder = !empty($data['has_preorder']);
     $items = isset($data['items']) && is_array($data['items']) ? $data['items'] : [];
 
     $bookingDateTime = DateTime::createFromFormat('Y-m-d H:i', $date . ' ' . $time, new DateTimeZone('Asia/Ho_Chi_Minh'));
     if (!$bookingDateTime || $bookingDateTime < new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'))) {
-        ResponseService::error('Khong the dat ban trong qua khu.', 422);
+        ResponseService::error('Không thể đặt bàn trong quá khứ.', 422);
     }
 
     $hour = (int)$bookingDateTime->format('H');
     if ($hour < 8 || $hour > 22) {
-        ResponseService::error('Vui long chon gio trong khung 08:00 - 22:00.', 422);
+        ResponseService::error('Vui lòng chọn giờ trong khung 08:00 - 22:00.', 422);
     }
 
-    $userId = $_SESSION['user_id'] ?? null;
-    if (!$userId) {
-        ResponseService::error('Phien dang nhap het han. Vui long dang nhap lai.', 401);
-    }
-    $userId = (int)$userId;
+    $authUser = AuthStateService::requireSession();
+    $userId = (int)$authUser['id'];
 
     if (!RateLimitService::check('book_table_' . $userId, 5, 60)) {
-        ResponseService::error('Thao tac qua nhanh. Vui long doi 1 phut.', 429);
+        ResponseService::error('Thao tác quá nhanh. Vui lòng đợi 1 phút.', 429);
     }
 
     $conn = getDbConnection();
@@ -67,13 +65,13 @@ try {
     if (!$table) {
         $conn->rollback();
         $conn->close();
-        ResponseService::error('Ban khong ton tai.', 404);
+        ResponseService::error('Bàn đặt không tồn tại.', 404);
     }
 
     if ($guestsInt > (int)$table['capacity']) {
         $conn->rollback();
         $conn->close();
-        ResponseService::error('So khach vuot qua suc chua cua ban.', 422);
+        ResponseService::error('Số khách vượt quá sức chứa của bàn.', 422);
     }
 
     $checkSql = "
@@ -94,7 +92,7 @@ try {
         $stmt->close();
         $conn->rollback();
         $conn->close();
-        ResponseService::error('Ban nay da duoc dat trong khoang 2 tieng gan thoi gian ban chon. Vui long chon ban/thoi gian khac.', 409);
+        ResponseService::error('Bàn này đã được đặt trong khoảng 2 tiếng gần thời gian bạn chọn. Vui lòng chọn bàn hoặc thời gian khác.', 409);
     }
     $stmt->close();
 
@@ -105,7 +103,7 @@ try {
     if ($hasPreorder && empty($items)) {
         $conn->rollback();
         $conn->close();
-        ResponseService::error('Mon dat truoc khong hop le.', 422);
+        ResponseService::error('Món đặt trước không hợp lệ.', 422);
     }
 
     if ($hasPreorder && !empty($items)) {
@@ -142,7 +140,7 @@ try {
         if ($totalAmount <= 0) {
             $conn->rollback();
             $conn->close();
-            ResponseService::error('Mon dat truoc khong hop le.', 422);
+            ResponseService::error('Món đặt trước không hợp lệ.', 422);
         }
 
         $depositAmount = ceil($totalAmount * 0.3);
@@ -179,36 +177,10 @@ try {
     $conn->commit();
 
     require_once ROOT_PATH . '/api/services/email_service.php';
-    $uStmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
-    $uStmt->bind_param("i", $userId);
-    $uStmt->execute();
-    $uRes = $uStmt->get_result();
     $emailSent = false;
-    if ($row = $uRes->fetch_assoc()) {
-        $email = $row['email'];
-        if ($email) {
-            $subject = "[Duong Bau] Xac nhan yeu cau dat ban";
-            $preorderText = $hasPreorder ? "Ban da dat mon truoc. Vui long thanh toan tien coc de xac nhan." : "";
-            $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
-            $safeDate = htmlspecialchars($date, ENT_QUOTES, 'UTF-8');
-            $safeTime = htmlspecialchars($time, ENT_QUOTES, 'UTF-8');
-            $safeFloor = htmlspecialchars($floor, ENT_QUOTES, 'UTF-8');
-            $safePreorderText = htmlspecialchars($preorderText, ENT_QUOTES, 'UTF-8');
-            $body = "<h2>Cam on ban da yeu cau dat ban!</h2>
-                     <p>Xin chao <strong>$safeName</strong>,</p>
-                     <p>Yeu cau dat ban cua ban da duoc ghi nhan:</p>
-                     <ul>
-                     <li><strong>Ngay:</strong> $safeDate</li>
-                     <li><strong>Gio:</strong> $safeTime</li>
-                     <li><strong>So khach:</strong> $guestsInt</li>
-                     <li><strong>Ban:</strong> $tableNumberInt (Sanh $safeFloor)</li>
-                     </ul>
-                     <p>$safePreorderText</p>
-                     <p>Tran trong,<br>Nha Hang Com Que Duong Bau</p>";
-            $emailSent = EmailService::send($email, $subject, $body);
-        }
+    if (!$hasPreorder) {
+        $emailSent = EmailService::sendBookingConfirmationEmail($conn, $bookingId);
     }
-    $uStmt->close();
 
     if ($hasPreorder && $depositAmount > 0) {
         $paymentContent = "BKG" . $bookingId;
@@ -222,14 +194,14 @@ try {
             'booking_id' => $bookingId,
             'deposit_amount' => $depositAmount,
             'payUrl' => $payUrl,
-            'message' => 'Vui long thanh toan tien coc ' . number_format($depositAmount) . 'd de xac nhan giu cho.',
+            'message' => 'Vui lòng thanh toán tiền cọc ' . number_format($depositAmount) . 'đ để xác nhận giữ chỗ.',
         ]);
     }
 
     $conn->close();
     ResponseService::success([
         'require_payment' => false,
-        'message' => 'Dat ban thanh cong! ' . ($emailSent ? 'Vui long kiem tra email.' : ''),
+        'message' => 'Đặt bàn thành công! ' . ($emailSent ? 'Vui lòng kiểm tra email xác nhận.' : ''),
     ]);
 } catch (InvalidArgumentException $e) {
     ResponseService::error($e->getMessage(), $e->getCode() ?: 400);
@@ -242,5 +214,5 @@ try {
         }
     }
     error_log('[BookTable] Exception: ' . $e->getMessage());
-    ResponseService::error('Loi he thong. Vui long thu lai.', 500);
+    ResponseService::error('Lỗi hệ thống. Vui lòng thử lại sau.', 500);
 }

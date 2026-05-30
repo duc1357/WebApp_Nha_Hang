@@ -14,22 +14,22 @@ require_once ROOT_PATH . '/api/services/password_policy.php';
 
 try {
     if (!RateLimitService::check('register', 10, 60)) {
-        ResponseService::error('Thao tac qua nhanh. Vui long doi.', 429);
+        ResponseService::error('Thao tác quá nhanh. Vui lòng đợi.', 429);
     }
 
     CsrfService::validateRequest();
 
     $data = RequestService::input(false);
-    $name = ValidationService::requiredString($data, 'name', 'Vui long dien du Ho ten, SDT va Mat khau.');
+    $name = ValidationService::requiredString($data, 'name', 'Vui lòng điền đủ Họ tên, SĐT và Mật khẩu.');
     $phone = ValidationService::phone(
-        ValidationService::requiredString($data, 'phone', 'Vui long dien du Ho ten, SDT va Mat khau.'),
-        'So dien thoai khong hop le (10 so, bat dau bang 0)'
+        ValidationService::requiredString($data, 'phone', 'Vui lòng điền đủ Họ tên, SĐT và Mật khẩu.'),
+        'Số điện thoại không hợp lệ (10 số, bắt đầu bằng 0).'
     );
     $email = ValidationService::email(
-        ValidationService::requiredString($data, 'email', 'Email khong hop le'),
-        'Email khong hop le'
+        ValidationService::requiredString($data, 'email', 'Email không hợp lệ.'),
+        'Email không hợp lệ.'
     );
-    $password = ValidationService::requiredString($data, 'password', 'Vui long dien du Ho ten, SDT va Mat khau.');
+    $password = ValidationService::requiredString($data, 'password', 'Vui lòng điền đủ Họ tên, SĐT và Mật khẩu.');
 
     if (!PasswordPolicy::isValid($password)) {
         ResponseService::error(PasswordPolicy::MESSAGE, 422);
@@ -45,7 +45,7 @@ try {
     $dupStmt->execute();
     $dupResult = $dupStmt->get_result();
     if ($dupResult->num_rows > 0) {
-        ResponseService::error('So dien thoai hoac Email da ton tai.', 409);
+        ResponseService::error('Số điện thoại hoặc Email đã tồn tại.', 409);
     }
     $dupStmt->close();
 
@@ -57,11 +57,11 @@ try {
 
     if (!$stmt->execute()) {
         if ($stmt->errno === 1062 || $conn->errno === 1062) {
-            ResponseService::error('So dien thoai hoac Email da ton tai.', 409);
+            ResponseService::error('Số điện thoại hoặc Email đã tồn tại.', 409);
         }
 
         error_log('[Register] Insert failed: ' . $stmt->error);
-        ResponseService::error('Loi he thong. Vui long thu lai sau.', 500);
+        ResponseService::error('Lỗi hệ thống. Vui lòng thử lại sau.', 500);
     }
 
     $stmt->close();
@@ -71,7 +71,7 @@ try {
         ob_end_clean();
     }
 
-    ResponseService::success(['message' => 'Dang ky thanh cong!']);
+    ResponseService::success(['message' => 'Đăng ký thành công!']);
 } catch (InvalidArgumentException $e) {
     while (ob_get_level()) {
         ob_end_clean();
@@ -82,5 +82,5 @@ try {
         ob_end_clean();
     }
     error_log('[Register] ' . $e->getMessage());
-    ResponseService::error('Loi he thong. Vui long thu lai sau.', 500);
+    ResponseService::error('Lỗi hệ thống. Vui lòng thử lại sau.', 500);
 }

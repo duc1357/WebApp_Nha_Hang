@@ -5,6 +5,7 @@ require_once __DIR__ . '/auth_check_api.php';
 requireAdminPost();
 require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/../../config/db.php';
+require_once ROOT_PATH . '/api/services/auth_state_service.php';
 require_once ROOT_PATH . '/api/services/password_policy.php';
 $conn = getDbConnection();
 
@@ -43,7 +44,7 @@ if (!empty($password) && !PasswordPolicy::isValid($password)) {
     exit;
 }
 
-$sql = "UPDATE users SET name=?, phone=?, email=?, role=?";
+$sql = "UPDATE users SET name=?, phone=?, email=?, role=?, token_version = token_version + 1";
 $types = "ssss";
 $params = [$name, $phone, $email, $role];
 
@@ -61,6 +62,18 @@ $stmt = $conn->prepare($sql);
 $stmt->bind_param($types, ...$params);
 
 if ($stmt->execute()) {
+    if ($id === (int)$_SESSION['user_id']) {
+        $versionStmt = $conn->prepare('SELECT token_version, role FROM users WHERE id = ? LIMIT 1');
+        $versionStmt->bind_param('i', $id);
+        $versionStmt->execute();
+        $versionRow = $versionStmt->get_result()->fetch_assoc();
+        $versionStmt->close();
+
+        if ($versionRow) {
+            AuthStateService::syncCurrentSessionVersion($id, (int)$versionRow['token_version'], (string)$versionRow['role']);
+        }
+    }
+
     ResponseService::json(['success' => true, 'message' => 'Cập nhật người dùng thành công']);
 } else {
     error_log('[AdminUpdateUser] ' . $stmt->error);

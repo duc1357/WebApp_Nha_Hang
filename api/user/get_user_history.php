@@ -5,16 +5,16 @@ ini_set('display_errors', 0);
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/pagination_service.php';
+require_once ROOT_PATH . '/api/services/auth_state_service.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    ResponseService::error('Unauthorized', 401);
-}
+$authUser = AuthStateService::requireSession();
 
 $conn = getDbConnection();
 
 // Get user info from session
-$userId = $_SESSION['user_id'];
+$userId = (int)$authUser['id'];
 // Optional: also get phone from session if needed, but userId is safer for foreign keys if available.
 // Hien tai DB orders co user_id, bookings co phone.
 
@@ -32,10 +32,13 @@ $stmt->close();
 
 
 // 1. Get Orders using user_id with Pagination
-$orderPage = isset($_GET['o_page']) ? (int)$_GET['o_page'] : 1;
-if ($orderPage < 1) $orderPage = 1;
-$limit = 3; // As requested
-$orderOffset = ($orderPage - 1) * $limit;
+$orderPagination = PaginationService::fromQuery([
+    'page' => $_GET['o_page'] ?? 1,
+    'limit' => 3,
+], 3, 3);
+$orderPage = $orderPagination['page'];
+$limit = $orderPagination['limit'];
+$orderOffset = $orderPagination['offset'];
 
 $orders = [];
 $totalOrders = 0;
@@ -69,10 +72,13 @@ if ($userId) {
 }
 
 // 2. Get Bookings using user_id with Pagination
-$bookingPage = isset($_GET['b_page']) ? (int)$_GET['b_page'] : 1;
-if ($bookingPage < 1) $bookingPage = 1;
-$bookingLimit = 3;
-$bookingOffset = ($bookingPage - 1) * $bookingLimit;
+$bookingPagination = PaginationService::fromQuery([
+    'page' => $_GET['b_page'] ?? 1,
+    'limit' => 3,
+], 3, 3);
+$bookingPage = $bookingPagination['page'];
+$bookingLimit = $bookingPagination['limit'];
+$bookingOffset = $bookingPagination['offset'];
 
 $bookings = [];
 $totalBookings = 0;
@@ -116,12 +122,12 @@ ResponseService::success([
         'total_orders' => $totalOrders,
         'limit' => $limit,
         'current_page' => $orderPage,
-        'total_pages' => ceil($totalOrders / $limit)
+        'total_pages' => PaginationService::totalPages($totalOrders, $limit)
     ],
     'booking_pagination' => [
         'total_bookings' => $totalBookings,
         'limit' => $bookingLimit,
         'current_page' => $bookingPage,
-        'total_pages' => ceil($totalBookings / $bookingLimit)
+        'total_pages' => PaginationService::totalPages($totalBookings, $bookingLimit)
     ]
 ]);

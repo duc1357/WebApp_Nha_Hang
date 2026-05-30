@@ -4,10 +4,10 @@ require_once __DIR__ . '/../../config/db.php';
 
 $conn = getDbConnection();
 
-// Lấy toàn bộ món trong menu_items (bao gồm đang bán & ngưng)
+// Public endpoint: only expose active menu items.
 $sql = "SELECT id, name, description, price, image_url AS photo, is_active, created_at
         FROM menu_items
-        WHERE deleted_at IS NULL
+        WHERE deleted_at IS NULL AND is_active = 1
         ORDER BY id DESC";
 
 $result = $conn->query($sql);

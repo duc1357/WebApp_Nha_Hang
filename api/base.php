@@ -4,6 +4,7 @@
 
 require_once __DIR__ . '/services/response_service.php';
 require_once __DIR__ . '/services/request_service.php';
+require_once __DIR__ . '/services/auth_state_service.php';
 
 function apiSuccess($data = null, string $message = 'Thanh cong', int $code = 200): void {
     $payload = ['message' => $message];
@@ -52,13 +53,6 @@ function getParam(array $data, string $key, $default = null, string $type = 'str
 }
 
 function requireAuth(?string $role = null): int {
-    if (!isset($_SESSION['user_id'])) {
-        apiError('Vui long dang nhap de tiep tuc', 401);
-    }
-
-    if ($role !== null && ($_SESSION['role'] ?? '') !== $role) {
-        apiError('Ban khong co quyen thuc hien thao tac nay', 403);
-    }
-
-    return (int)$_SESSION['user_id'];
+    $user = AuthStateService::requireSession($role);
+    return (int)$user['id'];
 }

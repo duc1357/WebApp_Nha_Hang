@@ -15,14 +15,14 @@ require_once ROOT_PATH . '/api/services/logger_service.php';
 try {
     if (!RateLimitService::check('login', 20, 60)) {
         Logger::security('User login rate limit exceeded', [], Logger::WARNING);
-        ResponseService::error('Qua nhieu lan thu. Vui long doi 1 phut.', 429);
+        ResponseService::error('Quá nhiều lần thử. Vui lòng đợi 1 phút.', 429);
     }
 
     CsrfService::validateRequest();
 
     $data = RequestService::json(true);
-    $identifier = ValidationService::requiredString($data, 'identifier', 'Thieu email/SDT hoac mat khau');
-    $password = ValidationService::requiredString($data, 'password', 'Thieu email/SDT hoac mat khau');
+    $identifier = ValidationService::requiredString($data, 'identifier', 'Thiếu Email/SĐT hoặc mật khẩu.');
+    $password = ValidationService::requiredString($data, 'password', 'Thiếu Email/SĐT hoặc mật khẩu.');
 
     $conn = getDbConnection();
 
@@ -39,7 +39,7 @@ try {
         Logger::auth('User login failed - user not found', [
             'identifier_hash' => hash('sha256', strtolower($identifier)),
         ]);
-        ResponseService::error('Email/SDT hoac mat khau khong dung', 401);
+        ResponseService::error('Email/SĐT hoặc mật khẩu không đúng.', 401);
     }
 
     $user = $result->fetch_assoc();
@@ -49,13 +49,14 @@ try {
             'user_id' => (int)$user['id'],
             'identifier_hash' => hash('sha256', strtolower($identifier)),
         ]);
-        ResponseService::error('Email/SDT hoac mat khau khong dung', 401);
+        ResponseService::error('Email/SĐT hoặc mật khẩu không đúng.', 401);
     }
 
     session_regenerate_id(true);
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['name'] = $user['name'];
     $_SESSION['role'] = $user['role'];
+    $_SESSION['token_version'] = (int)($user['token_version'] ?? 0);
     CsrfService::rotateToken();
 
     $jwt = JwtService::generate([
@@ -73,7 +74,7 @@ try {
     $conn->close();
 
     ResponseService::success([
-        'message' => 'Dang nhap thanh cong',
+        'message' => 'Đăng nhập thành công!',
         'token' => $jwt,
         'expires_in' => JWT_TTL_SECONDS,
         'user' => [
@@ -90,5 +91,5 @@ try {
     ResponseService::error($e->getMessage(), $e->getCode() ?: 400);
 } catch (Throwable $e) {
     error_log('[Login] ' . $e->getMessage());
-    ResponseService::error('Loi he thong. Vui long thu lai sau.', 500);
+    ResponseService::error('Lỗi hệ thống. Vui lòng thử lại sau.', 500);
 }

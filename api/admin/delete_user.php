@@ -20,7 +20,7 @@ if ($id === (int)$_SESSION['user_id']) {
 }
 
 $conn = getDbConnection();
-$stmt = $conn->prepare('UPDATE users SET deleted_at = NOW() WHERE id = ?');
+$stmt = $conn->prepare('UPDATE users SET deleted_at = NOW(), token_version = token_version + 1 WHERE id = ?');
 $stmt->bind_param('i', $id);
 
 if ($stmt->execute()) {

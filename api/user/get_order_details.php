@@ -2,14 +2,13 @@
 require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once ROOT_PATH . '/api/services/response_service.php';
+require_once ROOT_PATH . '/api/services/auth_state_service.php';
 
 
 
-if (!isset($_SESSION['user_id'])) {
-    ResponseService::error('Unauthorized', 401);
-}
+$authUser = AuthStateService::requireSession();
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$authUser['id'];
 $order_id = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
 
 if ($order_id <= 0) {

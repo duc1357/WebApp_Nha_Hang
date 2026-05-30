@@ -6,15 +6,12 @@ require_once ROOT_PATH . '/api/base.php';
 require_once ROOT_PATH . '/api/services/csrf_service.php';
 
 // Auth: chỉ user đã đăng nhập mới được cập nhật
-if (!isset($_SESSION['user_id'])) {
-    apiError('Vui lòng đăng nhập', 401);
-}
+$id = requireAuth();
 
 requireMethod('POST');
 CsrfService::validateRequest();
 
 $data = getJsonBody(required: true);
-$id   = (int) $_SESSION['user_id'];
 
 // [3.4] Validate với length constraints
 $name  = getParam($data, 'name',  null, 'string');
@@ -35,11 +32,11 @@ require_once ROOT_PATH . '/config/db.php';
 $conn = getDbConnection();
 
 // [3.4] Kiểm tra email đã được dùng bởi user khác chưa
-$checkStmt = $conn->prepare('SELECT id FROM users WHERE email = ? AND id != ?');
-$checkStmt->bind_param('si', $email, $id);
+$checkStmt = $conn->prepare('SELECT id FROM users WHERE (email = ? OR phone = ?) AND id != ? LIMIT 1');
+$checkStmt->bind_param('ssi', $email, $phone, $id);
 $checkStmt->execute();
 if ($checkStmt->get_result()->num_rows > 0) {
-    apiError('Email này đã được sử dụng bởi tài khoản khác');
+    apiError('Email hoặc số điện thoại này đã được sử dụng bởi tài khoản khác', 409);
 }
 $checkStmt->close();
 

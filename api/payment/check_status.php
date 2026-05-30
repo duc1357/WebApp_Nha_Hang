@@ -3,13 +3,11 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once ROOT_PATH . '/api/services/response_service.php';
 require_once ROOT_PATH . '/api/services/payment_state_service.php';
+require_once ROOT_PATH . '/api/services/auth_state_service.php';
 
-$userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+$authUser = AuthStateService::requireSession();
+$userId = (int)$authUser['id'];
 $orderId = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
-
-if (!$userId) {
-    ResponseService::error('Unauthorized', 401);
-}
 
 if ($orderId <= 0) {
     ResponseService::error('Missing order ID', 422);

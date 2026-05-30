@@ -1,14 +1,17 @@
 <?php
 require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
+require_once dirname(__DIR__, 2) . '/api/services/pagination_service.php';
 // api/menu/get_menu_list.php
-ob_clean();
+if (ob_get_level()) ob_clean();
+require_once dirname(__DIR__) . '/admin/auth_check_api.php';
 
 require_once __DIR__ . '/../../config/db.php';
 $conn = getDbConnection();
 
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
-$offset = ($page - 1) * $limit;
+$pagination = PaginationService::fromQuery($_GET, 10, 100);
+$page = $pagination['page'];
+$limit = $pagination['limit'];
+$offset = $pagination['offset'];
 
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $status = isset($_GET['status']) ? trim($_GET['status']) : '';
@@ -68,6 +71,6 @@ ResponseService::json([
         'total' => $totalItems,
         'page' => $page,
         'limit' => $limit,
-        'total_pages' => ceil($totalItems / $limit)
+        'total_pages' => PaginationService::totalPages($totalItems, $limit)
     ]
 ]);

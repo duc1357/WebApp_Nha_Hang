@@ -135,6 +135,11 @@ if (preg_match('/DH(\d+)/i', $content, $matches)) {
     if ($markResult['success']) {
         $conn->commit();
         $stmt->close();
+        
+        // Gửi email xác nhận sau khi thanh toán thành công
+        require_once ROOT_PATH . '/api/services/email_service.php';
+        EmailService::sendOrderConfirmationEmail($conn, $orderId);
+
         $conn->close();
         logWebhookPayment('SePay order payment accepted', [
             'order_id' => $orderId,
@@ -200,6 +205,11 @@ if (preg_match('/BKG(\d+)/i', $content, $matches)) {
             $conn->commit();
             $updateStmt->close();
             $stmt->close();
+
+            // Gửi email xác nhận đặt bàn sau khi thanh toán cọc thành công
+            require_once ROOT_PATH . '/api/services/email_service.php';
+            EmailService::sendBookingConfirmationEmail($conn, $bookingId);
+
             $conn->close();
             logWebhookPayment('SePay booking deposit accepted', [
                 'booking_id' => $bookingId,

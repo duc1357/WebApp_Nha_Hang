@@ -3,17 +3,16 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once ROOT_PATH . '/config/db.php';
 require_once ROOT_PATH . '/api/services/response_service.php';
 require_once ROOT_PATH . '/api/services/csrf_service.php';
+require_once ROOT_PATH . '/api/services/auth_state_service.php';
 
 // SEC-02: Validate CSRF cho upload (mutating request)
 CsrfService::validateRequest();
 
 // Kiểm tra đăng nhập – không tin user_id từ POST
-if (!isset($_SESSION['user_id'])) {
-    ResponseService::error('Vui lòng đăng nhập để thực hiện chức năng này', 401);
-}
+$authUser = AuthStateService::requireSession();
 
 // Lấy user_id từ SESSION, KHÔNG từ $_POST (tránh IDOR)
-$user_id = (int) $_SESSION['user_id'];
+$user_id = (int)$authUser['id'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     ResponseService::error('Method Not Allowed', 405);

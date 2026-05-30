@@ -1,7 +1,7 @@
 <?php
 require_once dirname(__DIR__, 2) . '/api/services/response_service.php';
 // api/admin/get_revenue_stats.php
-ob_clean();
+if (ob_get_level()) ob_clean();
 require_once __DIR__ . '/auth_check_api.php';
 require_once __DIR__ . '/../../config/db.php';
 

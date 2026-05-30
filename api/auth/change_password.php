@@ -6,23 +6,22 @@ require_once ROOT_PATH . '/api/services/request_service.php';
 require_once ROOT_PATH . '/api/services/validation_service.php';
 require_once ROOT_PATH . '/api/services/csrf_service.php';
 require_once ROOT_PATH . '/api/services/password_policy.php';
+require_once ROOT_PATH . '/api/services/auth_state_service.php';
 
 try {
     CsrfService::validateRequest();
 
-    if (!isset($_SESSION['user_id'])) {
-        ResponseService::error('Vui long dang nhap de thuc hien chuc nang nay.', 401);
-    }
+    $authUser = AuthStateService::requireSession();
 
     $data = RequestService::json(true);
-    $oldPass = ValidationService::requiredString($data, 'old_password', 'Vui long nhap day du thong tin.');
-    $newPass = ValidationService::requiredString($data, 'new_password', 'Vui long nhap day du thong tin.');
+    $oldPass = ValidationService::requiredString($data, 'old_password', 'Vui lòng nhập đầy đủ thông tin.');
+    $newPass = ValidationService::requiredString($data, 'new_password', 'Vui lòng nhập đầy đủ thông tin.');
 
     if (!PasswordPolicy::isValid($newPass)) {
         ResponseService::error(PasswordPolicy::MESSAGE, 400);
     }
 
-    $userId = (int)$_SESSION['user_id'];
+    $userId = (int)$authUser['id'];
     $conn = getDbConnection();
 
     $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
@@ -34,12 +33,12 @@ try {
 
     if (!$row) {
         $conn->close();
-        ResponseService::error('Tai khoan khong ton tai.', 404);
+        ResponseService::error('Tài khoản không tồn tại.', 404);
     }
 
     if (!password_verify($oldPass, $row['password'])) {
         $conn->close();
-        ResponseService::error('Mat khau cu khong dung.', 400);
+        ResponseService::error('Mật khẩu cũ không đúng.', 400);
     }
 
     $newHash = password_hash($newPass, PASSWORD_BCRYPT);
@@ -50,16 +49,27 @@ try {
         error_log('[ChangePass] Update failed: ' . $conn->error);
         $updateStmt->close();
         $conn->close();
-        ResponseService::error('Loi he thong. Vui long thu lai.', 500);
+        ResponseService::error('Lỗi hệ thống. Vui lòng thử lại sau.', 500);
     }
 
     $updateStmt->close();
+
+    $versionStmt = $conn->prepare("SELECT token_version, role FROM users WHERE id = ? LIMIT 1");
+    $versionStmt->bind_param("i", $userId);
+    $versionStmt->execute();
+    $versionRow = $versionStmt->get_result()->fetch_assoc();
+    $versionStmt->close();
+
+    if ($versionRow) {
+        AuthStateService::syncCurrentSessionVersion($userId, (int)$versionRow['token_version'], (string)$versionRow['role']);
+    }
+
     $conn->close();
 
-    ResponseService::success(['message' => 'Doi mat khau thanh cong.']);
+    ResponseService::success(['message' => 'Đổi mật khẩu thành công!']);
 } catch (InvalidArgumentException $e) {
     ResponseService::error($e->getMessage(), $e->getCode() ?: 400);
 } catch (Throwable $e) {
     error_log('[ChangePass] ' . $e->getMessage());
-    ResponseService::error('Loi he thong. Vui long thu lai.', 500);
+    ResponseService::error('Lỗi hệ thống. Vui lòng thử lại sau.', 500);
 }
