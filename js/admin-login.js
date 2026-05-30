@@ -1,10 +1,11 @@
 'use strict';
 
 let csrfToken = '';
+const originalFetch = window.fetch.bind(window);
 
-(async function initCsrf() {
+async function initializeCsrfToken() {
     try {
-        const res = await fetch('../api/auth/get_csrf.php');
+        const res = await originalFetch('../api/auth/get_csrf.php');
         const data = await res.json();
         if (data.success) {
             csrfToken = data.csrf_token;
@@ -12,11 +13,12 @@ let csrfToken = '';
     } catch (error) {
         console.error('CSRF Init fail', error);
     }
-})();
+}
 
-const originalFetch = window.fetch;
+const csrfReady = initializeCsrfToken();
 window.fetch = async function(url, options = {}) {
     if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method.toUpperCase())) {
+        await csrfReady;
         if (!options.headers) {
             options.headers = {};
         }

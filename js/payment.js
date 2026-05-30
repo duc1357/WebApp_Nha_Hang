@@ -76,7 +76,7 @@ window.startPaymentPolling = function(orderId) {
                 if (!data.success && ['Unauthorized', 'Order not found'].includes(data.message)) {
                     clearInterval(paymentCheckInterval);
                     paymentCheckInterval = null;
-                    showToast(data.message || 'Khong the kiem tra thanh toan', 'error');
+                    showToast(data.message || 'Không thể kiểm tra thanh toán.', 'error');
                     return;
                 }
 
@@ -113,7 +113,7 @@ window.startBookingPaymentPolling = function(bookingId) {
                 if (!data.success && ['Unauthorized', 'Booking not found'].includes(data.message)) {
                     clearInterval(paymentCheckInterval);
                     paymentCheckInterval = null;
-                    showToast(data.message || 'Khong the kiem tra thanh toan', 'error');
+                    showToast(data.message || 'Không thể kiểm tra thanh toán.', 'error');
                     return;
                 }
 

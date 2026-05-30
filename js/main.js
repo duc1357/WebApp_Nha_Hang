@@ -66,6 +66,8 @@
         const user = getUser();
         const box = document.getElementById('auth-actions');
         if (!box) return;
+        const staticUserHeader = box.dataset.staticUserHeader === 'true'
+            || Boolean(box.closest('[data-static-user-header="true"]'));
 
         box.textContent = '';
 
@@ -91,11 +93,16 @@
         const wrapper = document.createElement('div');
         wrapper.style.position = 'relative';
 
-        const trigger = document.createElement('button');
-        trigger.type = 'button';
+        const trigger = document.createElement(staticUserHeader ? 'div' : 'button');
+        if (!staticUserHeader) {
+            trigger.type = 'button';
+            trigger.setAttribute('aria-haspopup', 'menu');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
         trigger.id = 'user-header-trigger';
-        trigger.setAttribute('aria-haspopup', 'menu');
-        trigger.setAttribute('aria-expanded', 'false');
+        if (staticUserHeader) {
+            trigger.setAttribute('aria-label', `Xin chao, ${user.name || 'thanh vien'}`);
+        }
 
         const greeting = document.createElement('div');
         greeting.className = 'uht-greeting';
@@ -106,6 +113,12 @@
 
         trigger.appendChild(greeting);
         trigger.appendChild(createAvatar(user));
+
+        if (staticUserHeader) {
+            wrapper.append(trigger);
+            box.appendChild(wrapper);
+            return;
+        }
 
         const dropdown = document.createElement('div');
         dropdown.id = 'user-dropdown-menu';

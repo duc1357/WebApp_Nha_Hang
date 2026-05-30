@@ -56,7 +56,7 @@ function logout() {
                             </td>
                             <td>
                                 ${o.table_id ? 
-                                    `<span class="badge" style="background:#e3f2fd; color:#0d47a1;">Tại bàn: ${escapeHtml(o.table_id)}</span>` :
+                                    `<span class="badge badge-table">Tại bàn: ${escapeHtml(o.table_id)}</span>` :
                                     (o.address ? `<div style="font-size:13px;">Giao: <b>${escapeHtml(o.address)}</b></div>` : '<span style="color:#999; font-style:italic;">Mua lại quầy</span>')
                                 }
                                 ${o.note ? `<div style="margin-top:4px; font-size:12px; color:#c0392b; font-style:italic;">"${escapeHtml(o.note)}"</div>` : ''}

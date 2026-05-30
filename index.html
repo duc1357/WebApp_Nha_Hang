@@ -11,66 +11,1518 @@
 
     <title>Nhà Hàng Cơm Quê Dượng Bầu</title>
     <link rel="icon" href="photo/favicon.png" type="image/png">
+    
+    <!-- Theme Manager (Immediate FOUC Prevention) -->
+    <script src="js/theme.js"></script>
+
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css?v=16">
 
-    <!-- CSS đã được chuyển sang style.css -->
+    <!-- Premium Local Styles Overrides -->
+    <style>
+        :root {
+            --primary: #d35400;
+            --primary-dark: #b04300;
+            --primary-gradient: linear-gradient(135deg, #e67e22, #c0392b);
+            --charcoal: #1c1a17;
+            --charcoal-light: #2c2823;
+            --cream: #fbf9f6;
+            --cream-dark: #f3ede2;
+            --text-dark: #2c2823;
+            --text-muted: #7d7265;
+            --white: #ffffff;
+            --accent-gold: #d4af37;
+            --shadow-premium: 0 20px 50px rgba(28, 25, 23, 0.05);
+            --shadow-premium-hover: 0 30px 60px rgba(28, 25, 23, 0.1);
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 10px;
+            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        html[data-theme="dark"] {
+            --cream: #12100e;
+            --cream-dark: #24201c;
+            --text-dark: #f3ede2;
+            --text-muted: #a09587;
+            --white: #1c1916;
+            --charcoal: #fbf9f6;
+            --charcoal-light: #f3ede2;
+            --shadow-premium: 0 20px 50px rgba(0, 0, 0, 0.4);
+            --shadow-premium-hover: 0 30px 60px rgba(0, 0, 0, 0.55);
+            --border-theme: rgba(211, 84, 0, 0.12);
+            --border-subtle: rgba(211, 84, 0, 0.15);
+        }
+
+        /* Dark Mode overrides for Floating Cart Popup */
+        html[data-theme="dark"] #floating-cart-popup {
+            background: var(--white) !important;
+            border-color: rgba(211, 84, 0, 0.15) !important;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .cart-header {
+            border-bottom: 1px solid var(--cream-dark) !important;
+            background-color: var(--cream) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .cart-header h3 {
+            color: var(--charcoal) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .close-cart {
+            color: var(--text-muted) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .close-cart:hover {
+            color: var(--primary) !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .cart-body {
+            background: var(--white) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .cart-item {
+            border-bottom: 1px solid var(--cream-dark) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .cart-item span {
+            color: var(--text-dark) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .cart-item button {
+            background: rgba(231, 76, 60, 0.1) !important;
+            color: #e74c3c !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .cart-item button:hover {
+            background: #e74c3c !important;
+            color: var(--white) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .cart-footer {
+            background: var(--cream) !important;
+            border-top: 1px solid var(--cream-dark) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .premium-form-group input,
+        html[data-theme="dark"] #floating-cart-popup .premium-form-group textarea {
+            background: var(--white) !important;
+            border: 1.5px solid var(--cream-dark) !important;
+            color: var(--text-dark) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .premium-form-group input:focus,
+        html[data-theme="dark"] #floating-cart-popup .premium-form-group textarea:focus {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 3px rgba(211, 84, 0, 0.15) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .premium-radio {
+            color: var(--text-dark) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .premium-radio span {
+            color: var(--text-dark) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .premium-total {
+            color: var(--primary) !important;
+            border: none !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .premium-context {
+            border: none !important;
+            margin: 10px 0 !important;
+            padding: 10px 0 !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .premium-payment h4 {
+            color: var(--charcoal) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .btn-apply-voucher {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: var(--primary) !important;
+            border: 1.5px solid rgba(230, 126, 34, 0.3) !important;
+        }
+
+        html[data-theme="dark"] #floating-cart-popup .btn-apply-voucher:hover {
+            background: var(--primary-gradient) !important;
+            color: var(--white) !important;
+            border-color: transparent !important;
+        }
+
+        html[data-theme="dark"] #cart-items:empty::after {
+            color: var(--text-muted) !important;
+        }
+
+        /* Theme toggle button styling */
+        .theme-toggle-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.8);
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            outline: none;
+            padding: 0;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+            color: var(--white);
+            transform: scale(1.06);
+            border-color: rgba(211, 84, 0, 0.3);
+        }
+
+        /* Show/hide sun/moon based on active theme */
+        html[data-theme="dark"] .theme-toggle-btn .sun-icon {
+            display: block;
+        }
+        html[data-theme="dark"] .theme-toggle-btn .moon-icon {
+            display: none;
+        }
+
+        html:not([data-theme="dark"]) .theme-toggle-btn .sun-icon {
+            display: none;
+        }
+        html:not([data-theme="dark"]) .theme-toggle-btn .moon-icon {
+            display: block;
+        }
+
+        footer {
+            background-color: #0c0b0a !important;
+            color: #a09587 !important;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .bg-overlay {
+            background: transparent !important;
+        }
+
+        html[data-theme="dark"] body::before {
+            opacity: 0.15 !important;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, sans-serif;
+            background-color: var(--cream);
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        .bg-overlay {
+            background: transparent;
+            min-height: 100vh;
+        }
+
+        /* PREMIUM HERO SECTION */
+        #hero {
+            height: 100vh;
+            min-height: 600px;
+            background-image: 
+                linear-gradient(rgba(28, 25, 23, 0.65), rgba(28, 25, 23, 0.85)),
+                url('photo/luxury_bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--white);
+            position: relative;
+            margin-top: 0;
+            padding-top: 0;
+            clip-path: none;
+            overflow: hidden;
+        }
+
+        /* Golden warm glow overlays in hero */
+        #hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(230, 126, 34, 0.15), transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(212, 175, 55, 0.1), transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Smooth bottom blend for Hero */
+        #hero::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 180px;
+            background: linear-gradient(to top, var(--cream) 0%, rgba(28, 25, 23, 0.4) 50%, transparent 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* Floating Scroll Indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            opacity: 0.85;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--white);
+            transition: var(--transition);
+        }
+
+        .scroll-indicator:hover {
+            opacity: 1;
+            transform: translate(-50%, -3px);
+        }
+
+        .scroll-indicator span {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: #f3ede2;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+            transition: var(--transition);
+        }
+
+        .scroll-indicator:hover span {
+            color: var(--accent-gold);
+        }
+
+        .scroll-indicator .mouse-icon {
+            width: 24px;
+            height: 38px;
+            border: 2px solid #f3ede2;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transition: var(--transition);
+        }
+
+        .scroll-indicator:hover .mouse-icon {
+            border-color: var(--accent-gold);
+        }
+
+        .scroll-indicator .mouse-wheel {
+            width: 4px;
+            height: 8px;
+            background-color: var(--accent-gold);
+            border-radius: 2px;
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: scrollWheel 1.6s infinite cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes scrollWheel {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, 14px);
+            }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 860px;
+            padding: 0 24px;
+            animation: heroFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes heroFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.8rem, 6vw, 4.8rem);
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -0.5px;
+            text-transform: none;
+            background: linear-gradient(to right, #ffffff 30%, var(--accent-gold) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            margin-bottom: 24px;
+        }
+
+        #hero p {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            margin-bottom: 44px;
+            max-width: 720px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: 400;
+            color: #f3ede2;
+            line-height: 1.6;
+            opacity: 0.95;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 18px 48px;
+            background: var(--primary-gradient);
+            color: var(--white);
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-radius: 99px;
+            box-shadow: 0 10px 30px rgba(211, 84, 0, 0.35);
+            transition: var(--transition);
+            min-height: 44px;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(211, 84, 0, 0.45);
+            color: var(--white);
+        }
+
+        .cta-button:active {
+            transform: translateY(-1px);
+        }
+
+        /* PREMIUM FLOATING STICKY NAVIGATION */
+        nav.main-nav.glass-nav {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: min(92%, 1160px);
+            max-width: none;
+            margin: 0;
+            padding: 12px 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(28, 25, 23, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 99px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: var(--transition);
+        }
+
+        nav.main-nav.glass-nav:hover {
+            background: rgba(28, 25, 23, 0.92);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            border-color: rgba(211, 84, 0, 0.2);
+        }
+
+        nav.main-nav.glass-nav a {
+            font-size: 15px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 8px 20px;
+            border-radius: 99px;
+            transition: var(--transition);
+            min-height: auto;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        nav.main-nav.glass-nav a:hover,
+        nav.main-nav.glass-nav a.active {
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        nav.main-nav.glass-nav .nav-brand {
+            padding: 0;
+            background: transparent !important;
+            display: flex;
+            align-items: center;
+        }
+
+        nav.main-nav.glass-nav .nav-brand:hover {
+            transform: scale(1.05);
+        }
+
+        .nav-logo-img {
+            height: 46px;
+            width: 46px;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+            border: 2px solid var(--accent-gold);
+            object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .nav-auth {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Auth buttons rendered in nav-auth */
+        .nav-auth .auth-user {
+            color: #f3ede2;
+            font-weight: 600;
+            font-size: 14.5px;
+        }
+
+        .nav-auth .auth-btn {
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 99px;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-auth .auth-btn.secondary {
+            background: var(--primary-gradient);
+            color: var(--white);
+            box-shadow: 0 4px 15px rgba(211, 84, 0, 0.25);
+        }
+
+        .nav-auth .auth-btn.secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(211, 84, 0, 0.35);
+        }
+
+        /* SECTION BOX DESIGN (CONTAINERS) */
+        .container {
+            width: min(100% - 32px, 1200px);
+            margin: 80px auto;
+        }
+
+        .section-box {
+            background: var(--white) !important;
+            padding: 60px 48px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-premium) !important;
+            border: 1px solid rgba(211, 84, 0, 0.05) !important;
+            margin-bottom: 60px;
+            transition: var(--transition);
+        }
+
+        .section-box:hover {
+            box-shadow: var(--shadow-premium-hover);
+        }
+
+
+
+        .section-box h2 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            font-size: clamp(2.2rem, 4vw, 3rem);
+            color: var(--charcoal);
+            margin-bottom: 12px;
+            font-weight: 700;
+            position: relative;
+            display: block;
+            left: 0;
+            transform: none;
+        }
+
+        .section-box h2::after {
+            display: none; /* Removed the line under h2 to make it elegant */
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 15px;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 44px;
+            line-height: 1.6;
+        }
+
+        /* PREMIUM DYNAMIC MENU GRID */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+            gap: 32px;
+        }
+
+        .menu-item {
+            background: var(--white);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid rgba(211, 84, 0, 0.06);
+            box-shadow: 0 10px 30px rgba(28, 25, 23, 0.03);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            z-index: 1;
+            transition: var(--transition);
+        }
+
+        .menu-item:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(28, 25, 23, 0.08);
+            border-color: var(--primary);
+            z-index: 2;
+        }
+
+        .menu-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .menu-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .menu-item h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--charcoal);
+            padding: 20px 20px 6px;
+            margin: 0;
+        }
+
+        .menu-item p {
+            padding: 0 20px;
+            font-size: 13.5px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            line-height: 1.55;
+            flex-grow: 1;
+        }
+
+        .menu-item .price {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--primary);
+            padding: 0 20px;
+            margin-bottom: 20px;
+            letter-spacing: 0.2px;
+        }
+
+        .add-to-cart {
+            display: block;
+            width: calc(100% - 40px);
+            margin: 0 20px 20px;
+            padding: 12px;
+            background: var(--cream-dark);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 14.5px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            text-align: center;
+            min-height: 44px;
+            transition: var(--transition);
+        }
+
+        .add-to-cart:hover {
+            background: var(--primary-gradient);
+            color: var(--white);
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(211, 84, 0, 0.2);
+        }
+
+        /* PREMIUM REVIEWS SECTION */
+        #reviews h2 {
+            font-family: 'Playfair Display', serif !important;
+            font-size: clamp(2.2rem, 4vw, 3rem) !important;
+            color: var(--charcoal) !important;
+            -webkit-text-fill-color: var(--charcoal) !important;
+            text-transform: none !important;
+            font-weight: 700 !important;
+            letter-spacing: 0px !important;
+            margin-bottom: 12px !important;
+            background: none !important;
+        }
+
+        #reviews h2::after {
+            content: '❖' !important;
+            display: block !important;
+            width: auto !important;
+            height: auto !important;
+            background: none !important;
+            color: var(--accent-gold) !important;
+            font-size: 16px !important;
+            margin: 12px auto 0 !important;
+            letter-spacing: 0.2rem !important;
+            font-weight: normal !important;
+            border-radius: 0 !important;
+        }
+
+        #reviews {
+            background-color: var(--cream) !important;
+            background-image: linear-gradient(180deg, var(--cream) 0%, rgba(211, 84, 0, 0.03) 100%) !important;
+            border-top: 1px solid rgba(211, 84, 0, 0.06) !important;
+            transition: var(--transition) !important;
+        }
+
+        #reviews::before {
+            background: linear-gradient(180deg, var(--cream) 0%, rgba(251, 249, 246, 0) 20%, rgba(251, 249, 246, 0) 80%, var(--cream) 100%) !important;
+            transition: var(--transition) !important;
+        }
+
+        html[data-theme="dark"] #reviews::before {
+            background: linear-gradient(180deg, var(--cream) 0%, rgba(18, 16, 14, 0) 20%, rgba(18, 16, 14, 0) 80%, var(--cream) 100%) !important;
+        }
+
+        .customer-reviews-section .section-subtitle {
+            color: var(--charcoal-light) !important;
+            font-size: 16.5px !important;
+            line-height: 1.7 !important;
+            max-width: 680px !important;
+            margin: 16px auto 44px !important;
+            font-weight: 600 !important;
+            position: relative !important;
+            z-index: 2 !important;
+        }
+
+        #reviews .reviews-grid {
+            display: flex !important;
+            justify-content: center !important;
+            gap: 32px !important;
+            flex-wrap: wrap !important;
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            position: relative !important;
+            z-index: 2 !important;
+        }
+
+        #reviews .review-card {
+            background: var(--white) !important;
+            padding: 46px 36px 36px !important;
+            border-radius: var(--radius-lg) !important;
+            box-shadow: 0 16px 40px rgba(28, 25, 23, 0.03) !important;
+            width: 350px !important;
+            margin-top: 24px !important;
+            border: 1px solid rgba(211, 84, 0, 0.05) !important;
+            position: relative !important;
+            overflow: visible !important;
+            text-align: left !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            transition: var(--transition) !important;
+        }
+
+        #reviews .review-card::before {
+            content: '“' !important;
+            position: absolute !important;
+            top: 15px !important;
+            left: 24px !important;
+            font-size: 90px !important;
+            line-height: 1 !important;
+            color: var(--accent-gold) !important;
+            opacity: 0.1 !important;
+            font-family: 'Playfair Display', serif !important;
+            z-index: 0 !important;
+        }
+
+        #reviews .review-card:hover {
+            transform: translateY(-6px) !important;
+            box-shadow: 0 25px 50px rgba(211, 84, 0, 0.08) !important;
+            border-color: var(--accent-gold) !important;
+        }
+
+        #reviews .review-rating {
+            color: #f1c40f !important;
+            font-size: 18px !important;
+            margin-bottom: 20px !important;
+            letter-spacing: 2px !important;
+            position: relative !important;
+            z-index: 1 !important;
+            text-shadow: 0 2px 10px rgba(241, 196, 15, 0.15) !important;
+            animation: none !important;
+        }
+
+        #reviews .review-comment {
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-style: italic !important;
+            color: var(--charcoal-light) !important;
+            line-height: 1.7 !important;
+            font-size: 14.5px !important;
+            margin-bottom: 28px !important;
+            min-height: 70px !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }
+
+        #reviews .review-author {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 14px !important;
+            border-top: 1px solid var(--cream-dark) !important;
+            padding-top: 20px !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }
+
+        #reviews .review-author img {
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            border: 2px solid var(--accent-gold) !important;
+            box-shadow: 0 4px 10px rgba(28, 25, 23, 0.1) !important;
+            background: var(--white) !important;
+            object-fit: cover !important;
+            margin-bottom: 0 !important;
+            transition: var(--transition) !important;
+        }
+
+        #reviews .review-card:hover .review-author img {
+            transform: scale(1.08) !important;
+            box-shadow: 0 6px 15px rgba(211, 84, 0, 0.15) !important;
+        }
+
+        #reviews .review-author span {
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-weight: 700 !important;
+            font-size: 15px !important;
+            color: var(--charcoal) !important;
+            letter-spacing: 0.2px !important;
+        }
+
+        /* PREMIUM FLOATING CART WIDGET */
+        #floating-cart-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            color: var(--white);
+            border: none;
+            box-shadow: 0 12px 36px rgba(211, 84, 0, 0.35);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            transition: var(--transition);
+        }
+
+        #floating-cart-btn:hover {
+            transform: scale(1.08) translateY(-3px);
+            box-shadow: 0 16px 40px rgba(211, 84, 0, 0.45);
+        }
+
+        #floating-cart-btn svg {
+            width: 26px;
+            height: 26px;
+        }
+
+        #cart-count.badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--white);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 800;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 2px solid var(--primary);
+            min-width: auto;
+        }
+
+        /* SLIDE-OUT CART PANEL */
+        #floating-cart-popup {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: min(100%, 460px);
+            background: var(--white);
+            z-index: 1001;
+            box-shadow: -20px 0 60px rgba(28, 25, 23, 0.15);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateX(100%);
+        }
+
+        #floating-cart-popup:not(.hidden) {
+            transform: translateX(0);
+        }
+
+        #floating-cart-popup.hidden {
+            display: flex !important; /* Force layout space, handled by transform */
+            transform: translateX(100%);
+        }
+
+        .cart-header {
+            padding: 24px 30px;
+            border-bottom: 1px solid var(--cream-dark);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--cream);
+        }
+
+        .cart-header h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--charcoal);
+            margin: 0;
+        }
+
+        .close-cart {
+            font-size: 32px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-cart:hover {
+            color: var(--primary);
+            transform: rotate(90deg);
+        }
+
+        .cart-body {
+            flex: 1 1 auto;
+            padding: 30px;
+            overflow-y: auto;
+            min-height: 60px;
+        }
+
+        .cart-footer {
+            flex: 0 0 auto;
+            padding: 30px;
+            border-top: 1px solid var(--cream-dark);
+            background: var(--cream);
+            overflow: visible;
+        }
+
+        /* Cart item row rendered by cart.js */
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(28, 25, 23, 0.05);
+            gap: 12px;
+        }
+
+        .cart-item span {
+            font-weight: 600;
+            font-size: 14.5px;
+            color: var(--charcoal);
+        }
+
+        .cart-item button {
+            background-color: #fbebeb;
+            color: #c0392b;
+            border: none;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 12.5px;
+            transition: var(--transition);
+        }
+
+        .cart-item button:hover {
+            background-color: #c0392b;
+            color: var(--white);
+        }
+
+        /* Cart forms & inputs */
+        .premium-form-group {
+            margin-bottom: 18px;
+        }
+
+        .premium-form-group input,
+        .premium-form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--cream-dark);
+            background-color: var(--white);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .premium-form-group input:focus,
+        .premium-form-group textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(211, 84, 0, 0.06);
+        }
+
+        .voucher-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .btn-apply-voucher {
+            padding: 0 20px;
+            background: var(--charcoal);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 13.5px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-apply-voucher:hover {
+            background: var(--primary);
+        }
+
+        .voucher-msg {
+            font-size: 13px;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .premium-radio {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--charcoal-light);
+            cursor: pointer;
+        }
+
+        .premium-radio input {
+            accent-color: var(--primary);
+            width: 16px;
+            height: 16px;
+        }
+
+        .premium-total {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: right;
+            margin: 20px 0;
+            letter-spacing: 0.2px;
+        }
+
+        .premium-payment h4 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--charcoal);
+            margin: 0 0 10px 0;
+        }
+
+        .btn-checkout-premium {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary-gradient);
+            color: var(--white);
+            border: none;
+            border-radius: 99px;
+            font-weight: 700;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(211, 84, 0, 0.25);
+            transition: var(--transition);
+            min-height: 44px;
+        }
+
+        .btn-checkout-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(211, 84, 0, 0.35);
+        }
+
+        /* PREMIUM QR MODAL & THANK YOU MODAL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(28, 25, 23, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.hidden {
+            display: none !important;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(211, 84, 0, 0.08);
+            overflow: hidden;
+            animation: modalFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 28px 30px 18px;
+            text-align: center;
+            border-bottom: 1px solid var(--cream-dark);
+            background-color: var(--cream);
+        }
+
+        .modal-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            color: var(--charcoal);
+            margin: 0 0 6px 0;
+        }
+
+        .modal-header p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 18px;
+            right: 22px;
+            font-size: 28px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            z-index: 10;
+        }
+
+        .close-modal:hover {
+            color: var(--primary);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .qr-container {
+            text-align: center;
+            margin-bottom: 24px;
+            background-color: var(--cream) !important;
+            padding: 24px 20px !important;
+            border-radius: var(--radius-md) !important;
+            border: 1px solid var(--cream-dark) !important;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.02);
+            transition: var(--transition);
+        }
+
+        .qr-image {
+            max-width: 190px;
+            border: 3px solid var(--cream-dark) !important;
+            border-radius: var(--radius-md);
+            padding: 8px;
+            background: #ffffff !important; /* Luôn giữ nền trắng tinh để camera điện thoại dễ quét mã */
+            margin: 0 auto 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+            display: block;
+        }
+
+        .qr-note {
+            font-size: 13.5px;
+            color: var(--text-muted) !important;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .payment-details {
+            background-color: var(--cream) !important;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--cream-dark) !important;
+            margin-bottom: 20px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--cream-dark) !important;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none !important;
+        }
+
+        .detail-row .label {
+            font-size: 13.5px;
+            color: var(--text-muted) !important;
+            font-weight: 600;
+        }
+
+        .detail-row .value {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--charcoal) !important;
+        }
+
+        .detail-row .value.highlight {
+            font-size: 18px;
+            color: var(--primary) !important;
+            font-weight: 800;
+        }
+
+        .copy-box {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--white) !important;
+            border: 1px solid var(--cream-dark) !important;
+            padding: 4px 4px 4px 12px !important;
+            border-radius: 99px !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            transition: var(--transition);
+        }
+
+        .copy-box .value {
+            color: var(--charcoal) !important;
+            font-weight: 700 !important;
+            font-size: 13.5px !important;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-btn {
+            background: var(--cream) !important;
+            border: none !important;
+            color: var(--primary) !important;
+            padding: 0 !important;
+            border-radius: 50% !important;
+            cursor: pointer;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            width: 32px !important;
+            height: 32px !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-gradient) !important;
+            color: var(--white) !important;
+            box-shadow: 0 4px 10px rgba(211, 84, 0, 0.2) !important;
+        }
+
+        .bank-info {
+            text-align: center;
+            font-size: 13.5px;
+            color: var(--charcoal-light);
+            line-height: 1.6;
+        }
+
+        .modal-footer {
+            padding: 20px 30px 30px;
+            text-align: center;
+        }
+
+        .btn-finish {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-gradient);
+            color: var(--white);
+            border: none;
+            border-radius: 99px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(211, 84, 0, 0.2);
+            transition: var(--transition);
+            min-height: 44px;
+        }
+
+        .btn-finish:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(211, 84, 0, 0.3);
+        }
+
+        /* PREMIUM THANK YOU MODAL */
+        .thank-you-content {
+            padding: 50px 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .thank-you-icon {
+            font-size: 54px;
+            margin-bottom: 24px;
+            display: inline-block;
+            animation: iconFloat 3s infinite ease-in-out;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(5deg); }
+        }
+
+        .thank-you-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--charcoal);
+            margin: 0 0 12px 0;
+        }
+
+        .thank-you-message {
+            font-size: 15px;
+            line-height: 1.65;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        .thank-you-divider {
+            height: 1px;
+            background-color: var(--cream-dark);
+            width: 60%;
+            margin: 0 auto 24px;
+        }
+
+        .thank-you-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0 0 4px 0;
+        }
+
+        .thank-you-slogan {
+            font-size: 13.5px;
+            color: var(--accent-gold);
+            font-weight: 600;
+            margin: 0 0 36px 0;
+            letter-spacing: 0.5px;
+        }
+
+        .thank-you-btn {
+            max-width: 260px;
+            margin: 0 auto;
+        }
+
+        /* ELEGANT FOOTER */
+        footer {
+            background-color: var(--charcoal);
+            color: #a29687;
+            text-align: center;
+            padding: 60px 24px;
+            margin-top: 80px;
+            border-top: 3px solid var(--primary);
+            font-size: 14.5px;
+            line-height: 1.7;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
+        }
+
+        /* RESPONSIVE STYLING */
+        @media (max-width: 991px) {
+            nav.main-nav.glass-nav {
+                padding: 10px 24px;
+            }
+            .section-box {
+                padding: 44px 30px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            nav.main-nav.glass-nav {
+                width: calc(100% - 24px);
+                top: 12px;
+                padding: 8px 16px;
+                border-radius: 24px;
+            }
+
+            nav.main-nav.glass-nav a:not(.nav-brand) {
+                display: none; /* Hide navigation links on small mobile, auth stays */
+            }
+
+            #hero {
+                height: 75vh;
+                min-height: 480px;
+                background-attachment: scroll;
+            }
+
+            #hero h1 {
+                margin-bottom: 16px;
+            }
+
+            #hero p {
+                margin-bottom: 30px;
+            }
+
+            .container {
+                margin: 40px auto;
+            }
+
+            .section-box {
+                padding: 36px 20px;
+                border-radius: var(--radius-md);
+            }
+
+
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            #floating-cart-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 58px;
+                height: 58px;
+            }
+
+            #floating-cart-popup {
+                width: 100%;
+            }
+
+            .cart-body, .cart-footer {
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="bg-overlay">
 
-        <!-- HERO SECTION -->
-        <section id="hero">
-            <div class="hero-content">
-                <h1>Hương Vị Quê Hương<br>Giữa Lòng Thành Phố</h1>
-                <p>Thưởng thức những món ăn dân dã, đậm đà bản sắc Việt trong không gian ấm cúng.</p>
-                <a href="booking.html" class="cta-button">Đặt Bàn Ngay</a>
-            </div>
-        </section>
-
-        <!-- NAVIGATION -->
-        <nav class="main-nav">
+        <!-- PREMIUM STICKY GLASS NAVIGATION -->
+        <nav class="main-nav glass-nav">
             <a href="index.html" class="nav-brand">
                 <img src="photo/favicon.png" alt="Nhà Hàng Cơm Quê Dượng Bầu" class="nav-logo-img">
             </a>
-            <!-- <a href="#menu">Thực Đơn</a>  Removing static links if needed, but keeping simple for now -->
+            
             <a href="#menu">Thực Đơn</a>
             <a href="booking.html">Đặt Bàn</a>
-            <!-- Cart link removed -->
+
+            <!-- Theme Toggle Button -->
+            <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Chuyển đổi giao diện sáng tối">
+                <!-- Sun Icon -->
+                <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="18.36" x2="5.64" y2="19.78"></line><line x1="18.36" y1="4.22" x2="19.78" y2="5.64"></line></svg>
+                <!-- Moon Icon -->
+                <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
 
             <div id="auth-actions" class="nav-auth"></div>
         </nav>
 
+        <!-- PREMIUM HERO SECTION -->
+        <section id="hero">
+            <div class="hero-content">
+                <h1>Hương Vị Quê Hương<br>Giữa Lòng Thành Phố</h1>
+                <p>Thưởng thức những bữa cơm dân dã đượm vị mộc mạc, kết tinh từ tinh hoa ẩm thực ba miền trong không gian ấm cúng thân thương.</p>
+                <a href="booking.html" class="cta-button">Đặt Bàn Ngay</a>
+            </div>
+
+            <a href="#menu" class="scroll-indicator" aria-label="Cuộn xuống xem thực đơn">
+                <span>Khám phá thực đơn</span>
+                <div class="mouse-icon">
+                    <div class="mouse-wheel"></div>
+                </div>
+            </a>
+        </section>
+
+        <!-- MAIN LAYOUT -->
         <div class="container">
 
-            <!-- MENU -->
+            <!-- CUSTOMER MENU SECTION -->
             <section id="menu" class="section-box customer-menu-section">
-                <h2>Thực Đơn</h2>
+                <h2>Thực Đơn Dượng Bầu</h2>
+                <p class="section-subtitle">Mỗi món ăn là một câu chuyện, đượm nồng hương vị đồng quê mộc mạc được chuẩn bị tỉ mỉ từ nguyên liệu tươi ngon nhất trong ngày.</p>
+                
                 <div class="menu-grid" id="public-menu-grid">
-                    <p style="text-align:center; width:100%; grid-column:1/-1;">Đang tải thực đơn...</p>
+                    <p style="text-align:center; width:100%; grid-column:1/-1; color: var(--text-muted);">Đang tải thực đơn...</p>
                 </div>
-
             </section>
 
-            <!-- REVIEWS SECTION -->
+            <!-- CUSTOMER REVIEWS SECTION -->
             <section id="reviews" class="section-box customer-reviews-section">
-                <h2>Khách Hàng Nói Gì Về Chúng Tôi?</h2>
+                <h2>Cảm Nhận Thực Khách</h2>
+                <p class="section-subtitle">Những chia sẻ đầy chân tình và trân quý từ các thực khách thân thương đã ghé thăm và thưởng thức hương vị cơm nhà Dượng Bầu.</p>
+                
                 <div class="reviews-grid" id="featured-reviews-grid">
-                    <div class="spinner"></div> Đang tải đánh giá...
-                    <!-- Random Reviews will be loaded here -->
+                    <div style="text-align:center; width:100%; grid-column:1/-1; color: var(--text-muted);">Đang tải đánh giá...</div>
                 </div>
             </section>
-
-            <!-- CART REMOVED (Moved to floating widget) -->
-
-            <!-- BOOKING -->
-            <!-- BOOKING MOVED TO booking.html -->
 
         </div>
 
+        <!-- FOOTER -->
         <footer>
-            © 2025 Nhà Hàng Cơm Quê Dượng Bầu – 90 Mạc Đỉnh Chi – Hotline: 0799 412 960
+            <strong>Nhà Hàng Cơm Quê Dượng Bầu</strong>
+            <p>90 Mạc Đỉnh Chi, Quận 1, TP. Hồ Chí Minh</p>
+            <p>Hotline Đặt Bàn: 0799 412 960 | Mở cửa: 09:00 - 22:00 hàng ngày</p>
+            <p style="margin-top: 20px; font-size: 13px; opacity: 0.6;">© 2026 Nhà Hàng Cơm Quê Dượng Bầu. Bảo lưu mọi quyền.</p>
         </footer>
 
     </div>
@@ -79,7 +1531,7 @@
     <div id="floating-cart-container">
         <div id="floating-cart-popup" class="hidden customer-cart-panel">
             <div class="cart-header">
-                <h3>Giỏ Hàng</h3>
+                <h3>Giỏ Hàng Của Bạn</h3>
                 <span class="close-cart" data-action="toggle-cart">&times;</span>
             </div>
             <div id="cart-items" class="cart-body"></div>
@@ -87,30 +1539,36 @@
             <div class="cart-footer">
                 <div class="voucher-box premium-form-group">
                     <label for="voucher-input" style="display:none;">Mã giảm giá</label>
-                    <input type="text" id="voucher-input" placeholder="Nhập mã giảm giá...">
+                    <input type="text" id="voucher-input" placeholder="Nhập mã giảm giá (nếu có)...">
                     <button type="button" data-action="check-voucher" class="btn-apply-voucher">Áp dụng</button>
                 </div>
                 <div id="voucher-msg" class="voucher-msg"></div>
 
                 <div class="order-context premium-context">
                     <div class="radio-group">
-                        <label class="premium-radio"><input type="radio" name="order_type" value="delivery" checked> <span>Giao hàng</span></label>
-                        <label class="premium-radio"><input type="radio" name="order_type" value="dine_in"> <span>Tại bàn</span></label>
+                        <label class="premium-radio">
+                            <input type="radio" name="order_type" value="delivery" checked> 
+                            <span>Giao hàng tận nơi</span>
+                        </label>
+                        <label class="premium-radio">
+                            <input type="radio" name="order_type" value="dine_in"> 
+                            <span>Dùng tại bàn</span>
+                        </label>
                     </div>
 
                     <div id="delivery_info" class="premium-form-group">
                         <label for="delivery_address" style="display:none;">Địa chỉ giao hàng</label>
-                        <input type="text" id="delivery_address" placeholder="Địa chỉ giao hàng...">
+                        <input type="text" id="delivery_address" placeholder="Nhập địa chỉ giao hàng cụ thể...">
                     </div>
 
                     <div id="dine_in_info" class="premium-form-group" style="display:none;">
                         <label for="table_number_input" style="display:none;">Tên bàn</label>
-                        <input type="text" id="table_number_input" placeholder="Nhập tên/số bàn...">
+                        <input type="text" id="table_number_input" placeholder="Nhập số bàn / tên khu vực...">
                     </div>
                     
-                    <div class="premium-form-group" style="margin-top: 10px;">
+                    <div class="premium-form-group" style="margin-top: 4px;">
                         <label for="order_note" style="display:none;">Ghi chú thêm</label>
-                        <textarea id="order_note" placeholder="Ghi chú thêm (tuỳ chọn)..."></textarea>
+                        <textarea id="order_note" rows="1" placeholder="Ghi chú thêm (tuỳ chọn)..."></textarea>
                     </div>
                 </div>
 
@@ -119,16 +1577,22 @@
                 <div class="payment-options premium-payment">
                     <h4>Phương thức thanh toán</h4>
                     <div class="radio-group">
-                        <label class="premium-radio"><input type="radio" name="payment_method" value="cash" checked> <span>Tiền mặt</span></label>
-                        <label class="premium-radio"><input type="radio" name="payment_method" value="bank_transfer"> <span>MB QR</span></label>
+                        <label class="premium-radio">
+                            <input type="radio" name="payment_method" value="cash" checked> 
+                            <span>Tiền mặt</span>
+                        </label>
+                        <label class="premium-radio">
+                            <input type="radio" name="payment_method" value="bank_transfer"> 
+                            <span>Quét mã MB QR</span>
+                        </label>
                     </div>
                 </div>
 
-                <button id="checkout-btn" class="btn-checkout-premium" data-action="checkout">Thanh toán ngay</button>
+                <button id="checkout-btn" class="btn-checkout-premium" data-action="checkout">Tiến hành thanh toán</button>
             </div>
         </div>
 
-        <button id="floating-cart-btn" data-action="toggle-cart">
+        <button id="floating-cart-btn" data-action="toggle-cart" aria-label="Xem giỏ hàng">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="9" cy="21" r="1"></circle>
@@ -141,17 +1605,17 @@
 
     <!-- QR PAYMENT MODAL -->
     <div id="qr-payment-modal" class="modal-overlay hidden customer-payment-modal">
-        <div class="modal-content customer-payment-panel">
+        <div class="modal-content customer-payment-panel" style="position: relative;">
             <span class="close-modal" data-action="close-qr-modal">&times;</span>
             <div class="modal-header">
                 <h2>Thanh Toán QR</h2>
-                <p>Quét mã để thanh toán ngay</p>
+                <p>Quét mã bằng ứng dụng ngân hàng của bạn</p>
             </div>
 
             <div class="modal-body">
                 <div class="qr-container">
                     <img id="qr-code-img" src="" alt="Mã QR Thanh Toán" class="qr-image">
-                    <p class="qr-note">Sử dụng App Ngân hàng hoặc Camera để quét</p>
+                    <p class="qr-note">Vui lòng quét mã và giữ nguyên màn hình này</p>
                 </div>
 
                 <div class="payment-details">
@@ -163,7 +1627,7 @@
                         <span class="label">Nội dung chuyển khoản:</span>
                         <div class="copy-box">
                             <span class="value" id="qr-content">...</span>
-                            <button class="copy-btn" data-copy-target="qr-content">
+                            <button class="copy-btn" data-copy-target="qr-content" aria-label="Sao chép nội dung">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round">
@@ -176,13 +1640,13 @@
                 </div>
 
                 <div class="bank-info">
-                    <p>Ngân hàng: <strong>MBBank</strong></p>
+                    <p>Ngân hàng thụ hưởng: <strong>MBBank (Ngân hàng Quân đội)</strong></p>
                     <p>Chủ tài khoản: <strong>NHÀ HÀNG DƯỢNG BẦU</strong></p>
                 </div>
             </div>
 
             <div class="modal-footer">
-                <button class="btn-finish" data-action="close-qr-modal">Hoàn Tất Thanh Toán</button>
+                <button class="btn-finish" data-action="close-qr-modal">Hoàn Tất & Đóng</button>
             </div>
         </div>
     </div>
@@ -192,23 +1656,21 @@
         <div class="modal-content thank-you-content customer-thank-you-panel">
             <div class="thank-you-icon">🎉</div>
             <h2 id="thank-you-title" class="thank-you-title">Cảm Ơn Quý Khách!</h2>
-            <p class="thank-you-message">Đơn hàng của bạn đã được thanh toán thành công.<br>Chúng tôi sẽ chuẩn bị món ăn ngay!</p>
+            <p class="thank-you-message">Đơn hàng của quý khách đã được ghi nhận và gửi đến nhà bếp.<br>Chúng tôi sẽ nhanh chóng chuẩn bị bữa cơm trọn vị!</p>
             <div class="thank-you-divider"></div>
             <p class="thank-you-brand">🍲 Nhà Hàng Cơm Quê Dượng Bầu</p>
             <p class="thank-you-slogan">Ẩm thực quê nhà – Đậm vị thân thương</p>
-            <button class="btn-finish thank-you-btn" data-action="close-thank-you-modal">Đóng</button>
+            <button class="btn-finish thank-you-btn" data-action="close-thank-you-modal">Đóng cửa sổ</button>
         </div>
     </div>
 
-    <!-- JS Modules (thứ tự nạp quan trọng: main → utils → cart → menu → payment → reviews) -->
+    <!-- JS Modules (Thứ tự nạp quan trọng: main → utils → cart → menu → payment → reviews) -->
     <script src="js/main.js?v=5.0"></script>
     <script src="js/utils.js?v=3.0"></script>
     <script src="js/cart.js?v=3.0"></script>
     <script src="js/menu.js?v=3.0"></script>
     <script src="js/payment.js?v=3.0"></script>
     <script src="js/reviews.js?v=3.0"></script>
-
-    <!-- Profile Modal Removed (Moved to profile.html) -->
 
 </body>
 

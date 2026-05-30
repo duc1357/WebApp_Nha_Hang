@@ -380,13 +380,13 @@ function logout() {
                             <td>${escapeHtml(b.name || 'Khách lẻ')}</td>
                             <td>${escapeHtml(b.phone || '-')}</td>
                             <td>${escapeHtml(b.date)} <br> <span style="font-weight:600;color:#555;">${escapeHtml(b.time)}</span></td>
-                            <td><span class="badge" style="background:#e3f2fd;color:#1565c0;">${escapeHtml(b.table_name || 'Chưa xếp')}</span></td>
+                            <td><span class="badge badge-table">${escapeHtml(b.table_name || 'Chưa xếp')}</span></td>
                             <td>${escapeHtml(b.guests)} người</td>
                             <td><span class="badge ${statusClass}">${statusText}</span></td>
-                            <td style="text-align:center;">
+                            <td class="col-action">
                                 ${b.status === 'pending' ? 
-                                    '<button type="button" data-status="confirmed" class="js-booking-status" style="padding:4px 8px; border:none; background:#2ecc71; color:white; border-radius:4px; cursor:pointer; margin-right:4px;">Nhận</button>' +
-                                    '<button type="button" data-status="cancelled" class="js-booking-status" style="padding:4px 8px; border:none; background:#e74c3c; color:white; border-radius:4px; cursor:pointer;">Hủy</button>'
+                                    '<button type="button" data-status="confirmed" class="js-booking-status btn-action btn-approve" style="margin-right:8px;">Nhận</button>' +
+                                    '<button type="button" data-status="cancelled" class="js-booking-status btn-action btn-cancel">Hủy</button>'
                                     : '<span style="color:#ccc;">-</span>'}
                             </td>
                         `;
@@ -404,10 +404,12 @@ function logout() {
             const container = document.getElementById('pagination');
             container.innerHTML = '';
             if(totalPages <= 1) return;
-            // Simplified pagination
             for(let i=1; i<=totalPages; i++) {
                 const btn = document.createElement('button');
-                btn.style.padding = '10px 15px'; btn.style.minHeight = '44px'; btn.style.border = '1px solid #ddd'; btn.style.background = i===current?'#e67e22':'#fff'; btn.style.color = i===current?'#fff':'#333'; btn.style.cursor = 'pointer'; btn.style.borderRadius = '4px'; btn.style.display = 'inline-flex'; btn.style.alignItems = 'center'; btn.style.justifyContent = 'center';
+                btn.className = 'page-link';
+                if(i === current) {
+                    btn.classList.add('active');
+                }
                 btn.textContent = i;
                 btn.onclick = () => loadBookings(i);
                 container.appendChild(btn);

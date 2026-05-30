@@ -93,10 +93,10 @@ function loadRecentOrders() {
                 return;
             }
             data.orders.forEach(o => {
-                let sttColor = '#f39c12';
-                let sttText = 'Chờ xử lý';
-                if(o.status === 'paid') { sttColor = '#27ae60'; sttText = 'Đã thanh toán'; }
-                if(o.status === 'cancelled') { sttColor = '#c0392b'; sttText = 'Đã hủy'; }
+                let statusClass = 'res-pending';
+                let statusText = 'Chờ xử lý';
+                if(o.status === 'paid') { statusClass = 'res-confirmed'; statusText = 'Đã thanh toán'; }
+                if(o.status === 'cancelled') { statusClass = 'res-cancelled'; statusText = 'Đã hủy'; }
 
                 let payText = 'Tiền mặt';
                 let payClass = 'cash';
@@ -108,7 +108,7 @@ function loadRecentOrders() {
                     <td>${escapeHtml(o.customer_name || 'Khách lẻ')}</td>
                     <td><span class="badge tag ${payClass}" style="font-weight:500;">${payText}</span></td>
                     <td style="font-weight:700;">${Number(o.total_amount).toLocaleString('vi-VN')}</td>
-                    <td><span style="color:${sttColor}; font-weight:600; font-size:12px;">${sttText}</span></td>
+                    <td><span class="badge ${statusClass}">${statusText}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -141,7 +141,7 @@ function loadMenuItems() {
     const tbody = document.querySelector('#menuItemsTable tbody');
     if (!tbody) return;
 
-    fetch('../api/menu/get_menu.php')
+    fetch('../api/menu/get_menu_list.php?page=1&limit=100')
         .then(res => res.json())
         .then(data => {
             tbody.innerHTML = '';
@@ -436,6 +436,7 @@ function deleteUser(id) {
 
 
 let revenueChartInstance = null;
+let topDishesChartInstance = null;
 
 function loadRevenueChart(type = 'day') {
     fetch(`../api/admin/get_revenue_stats.php?type=${type}`)
@@ -446,6 +447,22 @@ function loadRevenueChart(type = 'day') {
             if (revenueChartInstance) {
                 revenueChartInstance.destroy();
             }
+            
+            // Detect theme
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const ticksColor = isDark ? '#a09587' : '#7d7265';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(28, 25, 23, 0.05)';
+
+            // Create premium gradient fill
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            if (isDark) {
+                gradient.addColorStop(0, 'rgba(211, 84, 0, 0.35)');
+                gradient.addColorStop(1, 'rgba(211, 84, 0, 0.00)');
+            } else {
+                gradient.addColorStop(0, 'rgba(211, 84, 0, 0.25)');
+                gradient.addColorStop(1, 'rgba(211, 84, 0, 0.00)');
+            }
+
             revenueChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -453,23 +470,66 @@ function loadRevenueChart(type = 'day') {
                     datasets: [{
                         label: 'Doanh thu (VNĐ)',
                         data: data.stats.data,
-                        borderColor: '#e67e22',
-                        backgroundColor: 'rgba(230, 126, 34, 0.1)',
-                        borderWidth: 2,
+                        borderColor: '#d35400',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
                         tension: 0.4,
                         fill: true,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#d35400',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointHoverBackgroundColor: '#d35400',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1c1a17',
+                            titleFont: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: '700' },
+                            bodyFont: { family: "'Outfit', sans-serif", size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Doanh thu: ' + new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(context.raw);
+                                }
+                            }
+                        }
+                    },
                     scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: ticksColor,
+                                font: {
+                                    family: "'Plus Jakarta Sans', sans-serif",
+                                    size: 11,
+                                    weight: '600'
+                                }
+                            }
+                        },
                         y: {
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            },
                             beginAtZero: true,
                             ticks: {
+                                color: ticksColor,
+                                font: {
+                                    family: "'Outfit', sans-serif",
+                                    size: 11
+                                },
                                 callback: function(value) {
                                     return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
                                 }
@@ -489,28 +549,59 @@ function loadTopDishesChart() {
     .then(data => {
         if(data.success && data.data && data.data.length > 0) {
             const ctx = document.getElementById('topDishesChart').getContext('2d');
-            new Chart(ctx, {
+            if (topDishesChartInstance) {
+                topDishesChartInstance.destroy();
+            }
+            
+            // Detect theme
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const legendColor = isDark ? '#a09587' : '#2c2823';
+            const borderColor = isDark ? '#1c1916' : '#ffffff';
+
+            topDishesChartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: data.labels,
                     datasets: [{
                         data: data.data,
                         backgroundColor: [
-                            '#e67e22', '#f1c40f', '#27ae60', '#2980b9', '#8e44ad'
+                            '#d35400', // Deep Orange
+                            '#e67e22', // Light Orange
+                            '#d4af37', // Accent Gold
+                            '#2c2823', // Charcoal Light
+                            '#7d7265'  // Text Muted
                         ],
-                        borderWidth: 1
+                        borderColor: borderColor,
+                        borderWidth: 2,
+                        hoverOffset: 6
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '65%',
                     plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                boxWidth: 10, 
+                                font: { family: "'Plus Jakarta Sans', sans-serif", size: 11, weight: '600' },
+                                color: legendColor,
+                                padding: 15
+                            } 
+                        },
+                        tooltip: {
+                            backgroundColor: '#1c1a17',
+                            titleFont: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: '700' },
+                            bodyFont: { family: "'Outfit', sans-serif", size: 13 },
+                            padding: 10,
+                            cornerRadius: 6
+                        }
                     }
                 }
             });
         } else {
-            document.getElementById('topDishesChart').parentElement.innerHTML = '<p style="color:#95a5a6; font-size:13px; font-style:italic;">Chưa có dữ liệu đơn hàng.</p>';
+            document.getElementById('topDishesChart').parentElement.innerHTML = '<p style="color:#7d7265; font-size:13px; font-style:italic; font-family:\'Plus Jakarta Sans\', sans-serif;">Chưa có dữ liệu đơn hàng.</p>';
         }
     })
     .catch(console.error);
@@ -534,5 +625,44 @@ document.addEventListener('change', (event) => {
     const filter = event.target.closest('[data-action="load-revenue-chart"]');
     if (filter) {
         loadRevenueChart(filter.value);
+    }
+});
+
+// Dynamic Theme Switching for Charts
+window.addEventListener('theme-changed', (e) => {
+    const isDark = e.detail.theme === 'dark';
+    
+    if (revenueChartInstance) {
+        const ticksColor = isDark ? '#a09587' : '#7d7265';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(28, 25, 23, 0.05)';
+        
+        // Update scales configuration
+        revenueChartInstance.options.scales.x.ticks.color = ticksColor;
+        revenueChartInstance.options.scales.y.ticks.color = ticksColor;
+        revenueChartInstance.options.scales.y.grid.color = gridColor;
+        
+        // Re-generate gradient
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        if (isDark) {
+            gradient.addColorStop(0, 'rgba(211, 84, 0, 0.35)');
+            gradient.addColorStop(1, 'rgba(211, 84, 0, 0.00)');
+        } else {
+            gradient.addColorStop(0, 'rgba(211, 84, 0, 0.25)');
+            gradient.addColorStop(1, 'rgba(211, 84, 0, 0.00)');
+        }
+        revenueChartInstance.data.datasets[0].backgroundColor = gradient;
+        
+        revenueChartInstance.update();
+    }
+
+    if (topDishesChartInstance) {
+        const legendColor = isDark ? '#a09587' : '#2c2823';
+        const borderColor = isDark ? '#1c1916' : '#ffffff';
+        
+        topDishesChartInstance.options.plugins.legend.labels.color = legendColor;
+        topDishesChartInstance.data.datasets[0].borderColor = borderColor;
+        
+        topDishesChartInstance.update();
     }
 });

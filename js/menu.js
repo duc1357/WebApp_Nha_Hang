@@ -85,7 +85,7 @@ window.loadBookingMenu = function() {
                 el.dataset.name = (item.name || '').toLowerCase();
                 el.dataset.desc = (item.description || '').toLowerCase();
                 el.innerHTML = `
-                    <img class="drawer-item-img" src="${escapeHTML(imgUrl)}" alt="${safeName}" data-menu-fallback="1">
+                    <img class="drawer-item-img" src="${escapeHTML(imgUrl)}" alt="${safeName}" data-menu-fallback="1" decoding="async" loading="lazy">
                     <div class="drawer-item-info">
                         <div class="drawer-item-name">${safeName}</div>
                         <div class="drawer-item-desc">${safeDesc}</div>
@@ -98,8 +98,14 @@ window.loadBookingMenu = function() {
                     </div>
                 `;
 
-                el.querySelector('.js-bkg-minus').addEventListener('click', () => updateBookingItem(item.id, item.name || '', item.price, -1));
-                el.querySelector('.js-bkg-plus').addEventListener('click', () => updateBookingItem(item.id, item.name || '', item.price, 1));
+                el.querySelector('.js-bkg-minus').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updateBookingItem(item.id, item.name || '', item.price, -1);
+                });
+                el.querySelector('.js-bkg-plus').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updateBookingItem(item.id, item.name || '', item.price, 1);
+                });
                 list.appendChild(el);
             });
         })

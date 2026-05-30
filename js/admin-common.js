@@ -33,20 +33,40 @@ window.adminCsrfToken = '';
     // Global Poller for Real-time Notifications
     (function() {
         let lastOrderId = 0;
-        // Simple "Ding" sound (Base64)
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let audioContext = null;
+
+        function getAudioContext() {
+            if (audioContext) return audioContext;
+            const AudioCtor = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtor) return null;
+
+            try {
+                audioContext = new AudioCtor();
+                return audioContext;
+            } catch (err) {
+                console.warn('Notification audio unavailable:', err);
+                return null;
+            }
+        }
         
         function playDing() {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime); // 1000Hz
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            oscillator.start();
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
-            oscillator.stop(audioContext.currentTime + 0.5);
+            const ctx = getAudioContext();
+            if (!ctx) return;
+
+            try {
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+                oscillator.stop(ctx.currentTime + 0.5);
+            } catch (err) {
+                console.warn('Notification audio failed:', err);
+            }
         }
 
         function checkNewOrders() {

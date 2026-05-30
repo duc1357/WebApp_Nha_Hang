@@ -10,7 +10,7 @@ const originalFetch = window.fetch.bind(window);
     }
 })();
 
-(async function initCsrf() {
+async function initializeCsrfToken() {
     try {
         const res = await originalFetch('api/auth/get_csrf.php');
         const data = await res.json();
@@ -20,10 +20,13 @@ const originalFetch = window.fetch.bind(window);
     } catch (e) {
         console.error('CSRF Init fail', e);
     }
-})();
+}
+
+const csrfReady = initializeCsrfToken();
 
 window.fetch = async function(url, options = {}) {
     if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method.toUpperCase())) {
+        await csrfReady;
         options.headers = options.headers || {};
         if (options.headers instanceof Headers) {
             options.headers.append('X-CSRF-Token', csrfToken);
@@ -107,8 +110,8 @@ function handleRegister() {
         password: document.getElementById('reg-password').value.trim(),
     };
 
-    if (!user.name || !user.phone || !user.password) {
-        setMessage(msg, 'Vui lòng điền đủ Họ tên, SĐT và Mật khẩu.', 'error');
+    if (!user.name || !user.phone || !user.email || !user.password) {
+        setMessage(msg, 'Vui long dien day du ho ten, SDT, email va mat khau.', 'error');
         return;
     }
 

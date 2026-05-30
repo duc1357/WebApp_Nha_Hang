@@ -5,7 +5,7 @@ let currentEmail = '';
 let confirmedOtp = '';
 const originalFetch = window.fetch.bind(window);
 
-(async function initCsrf() {
+async function initializeCsrfToken() {
     try {
         const res = await originalFetch('api/auth/get_csrf.php');
         const data = await res.json();
@@ -15,10 +15,13 @@ const originalFetch = window.fetch.bind(window);
     } catch (e) {
         console.error('CSRF Init fail', e);
     }
-})();
+}
+
+const csrfReady = initializeCsrfToken();
 
 window.fetch = async function(url, options = {}) {
     if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method.toUpperCase())) {
+        await csrfReady;
         options.headers = options.headers || {};
         if (options.headers instanceof Headers) {
             options.headers.append('X-CSRF-Token', csrfToken);
@@ -115,14 +118,14 @@ async function verifyOtp() {
 }
 
 async function resetPassword() {
-    const p1 = document.getElementById('newPass').value;
-    const p2 = document.getElementById('confirmPass').value;
+    const newPassword = document.getElementById('newPass').value;
+    const confirmPassword = document.getElementById('confirmPass').value;
 
-    if (p1.length < 6) {
-        showMsg('Mật khẩu tối thiểu 6 ký tự', 'danger');
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+        showMsg('Mat khau can toi thieu 8 ky tu, co chu hoa va so.', 'danger');
         return;
     }
-    if (p1 !== p2) {
+    if (newPassword !== confirmPassword) {
         showMsg('Mật khẩu không khớp', 'danger');
         return;
     }
@@ -132,7 +135,7 @@ async function resetPassword() {
     try {
         const res = await fetch('api/auth/reset_password.php', {
             method: 'POST',
-            body: JSON.stringify({ email: currentEmail, otp: confirmedOtp, password: p1 }),
+            body: JSON.stringify({ email: currentEmail, otp: confirmedOtp, password: newPassword }),
         });
         const data = await res.json();
 

@@ -113,6 +113,31 @@ window.removeFromCart = function(id) {
     updateCart();
 };
 
+window.increaseCartItem = function(id) {
+    id = parseInt(id);
+    const item = window.cart.find(cartItem => cartItem.id === id);
+    if (!item) return;
+
+    item.quantity += 1;
+    saveCartToStorage();
+    updateCart();
+};
+
+window.decreaseCartItem = function(id) {
+    id = parseInt(id);
+    const item = window.cart.find(cartItem => cartItem.id === id);
+    if (!item) return;
+
+    if (item.quantity <= 1) {
+        removeFromCart(id);
+        return;
+    }
+
+    item.quantity -= 1;
+    saveCartToStorage();
+    updateCart();
+};
+
 /** Cập nhật toàn bộ UI giỏ hàng */
 window.updateCart = function() {
     const cartItems = document.getElementById('cart-items');
@@ -136,13 +161,40 @@ window.updateCart = function() {
         const row  = document.createElement('div');
         row.className = 'cart-item';
         const info = document.createElement('span');
-        info.textContent = `${item.name} x ${item.quantity}`;
-        const btn  = document.createElement('button');
-        btn.type   = 'button';
+        info.textContent = item.name;
+        const controls = document.createElement('div');
+        controls.className = 'cart-qty-controls';
+
+        const decreaseBtn = document.createElement('button');
+        decreaseBtn.type = 'button';
+        decreaseBtn.className = 'cart-qty-btn';
+        decreaseBtn.setAttribute('aria-label', `Giảm số lượng ${item.name}`);
+        decreaseBtn.onclick = () => decreaseCartItem(item.id);
+        decreaseBtn.textContent = '-';
+
+        const qty = document.createElement('span');
+        qty.className = 'cart-qty-value';
+        qty.textContent = item.quantity;
+
+        const increaseBtn = document.createElement('button');
+        increaseBtn.type = 'button';
+        increaseBtn.className = 'cart-qty-btn';
+        increaseBtn.setAttribute('aria-label', `Tăng số lượng ${item.name}`);
+        increaseBtn.onclick = () => increaseCartItem(item.id);
+        increaseBtn.textContent = '+';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cart-remove-btn';
         btn.onclick = () => removeFromCart(item.id);
         btn.textContent = 'Xóa';
+
+        controls.appendChild(decreaseBtn);
+        controls.appendChild(qty);
+        controls.appendChild(increaseBtn);
+        controls.appendChild(btn);
         row.appendChild(info);
-        row.appendChild(btn);
+        row.appendChild(controls);
         cartItems.appendChild(row);
     });
 

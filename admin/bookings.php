@@ -84,6 +84,7 @@ require_once 'auth_check.php';
         .btn-pos.secondary { background: #27ae60; }
         .btn-pos.danger { background: #e74c3c; }
         
+        .col-action { min-width: 160px; text-align: center; }
         /* Small utilities */
         .loading-spinner { border: 3px solid rgba(0,0,0,0.1); border-left-color: var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -130,7 +131,7 @@ require_once 'auth_check.php';
                 <table id="bookingsTable">
                     <thead>
                         <tr>
-                            <th>ID</th><th>Khách hàng</th><th>SĐT</th><th>Ngày & Giờ</th><th>Bàn</th><th>Khách</th><th>Trạng thái</th><th style="text-align:center;">Hành động</th>
+                            <th>ID</th><th>Khách hàng</th><th>SĐT</th><th>Ngày & Giờ</th><th>Bàn</th><th>Khách</th><th>Trạng thái</th><th class="col-action">Hành động</th>
                         </tr>
                     </thead>
                     <tbody><tr><td colspan="8">Đang tải...</td></tr></tbody>
